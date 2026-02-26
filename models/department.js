@@ -1,17 +1,17 @@
 const mongoose = require("mongoose");
 
-const roleSchema = new mongoose.Schema({
+const deptSchema = new mongoose.Schema({
   name: { type: String },
 });
 
 // Apply toJSON transform on the schema
-roleSchema.set("toJSON", {
+deptSchema.set("toJSON", {
   transform: function (doc, ret) {
     delete ret.__v;
     return ret;
   },
 });
 
-const role = mongoose.model("role", roleSchema);  
+const department = mongoose.model("department", deptSchema);
 
-module.exports = role;
+module.exports = department;
