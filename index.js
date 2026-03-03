@@ -29,5 +29,4 @@ app.use("/login", loginRoutes);
 app.use("/auth", authenticationRoutes);
 app.use(errorHandler);
 
-
 app.listen(3000, () => console.log("Listening on 3000"));
