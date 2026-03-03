@@ -1,12 +1,9 @@
 const express = require("express");
-const login = require("../controllers/login");
 const myPass = require("../auth/passport");
+const { generateToken } = require("../utils/helper");
+const jwt = require("jsonwebtoken");
 
 const router = express.Router();
-
-router.get("/", login.loginForm);
-router.get("/profileForm", login.profileForm);
-router.get("/profile", login.profile);
 
 // 🔥 Google login route (start OAuth)
 router.get(
@@ -14,6 +11,7 @@ router.get(
   myPass.authenticate("google", {
     scope: [
       "profile",
+      "email",
       "https://www.googleapis.com/auth/calendar"
     ],
     accessType: "offline",
@@ -29,10 +27,14 @@ router.get(
     failureRedirect: "/login"
   }),
   (req, res) => {
-    res.redirect("/profile"); // or wherever you want
+    const token = generateToken(req.user.user._id,req.user.user.email,null);
+    const msg = req.user.isNewUser
+      ? "User is new"
+      : "User exists";
+
+    res.redirect(`http://localhost:5173/google/callback?msg=${encodeURIComponent(msg)}&token=${token}`);
+
   }
 );
-
-router.get("/logout", login.logout);
 
 module.exports = router;
