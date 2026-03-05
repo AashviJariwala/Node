@@ -2,7 +2,6 @@ const user=require("../models/user");
 const role=require("../models/role");
 const department=require("../models/department");
 const roleDept=require("../models/roleDept");
-
 const ApiError = require("../utils/ApiError");
 const axios = require("axios");
 const FormData = require("form-data");
@@ -29,13 +28,22 @@ exports.idCardVerification = async (req, res, next) => {
         headers: form.getHeaders(),
       }
     );
+    console.log(response);
     var arr1=response.data.text.split("\n");
     var arr2=[];
+    var flag=false;
     for(var i of arr1){
       if(i.includes("Department") || i.includes("Designation")){
         arr2.push(i)
+        flag=true
       }
     }
+    if(flag==false){
+      return res
+      .status(200)
+      .send({ success: true, msg:"Invalid id card" });
+    }
+
     const result = arr2.map(item => {
       const cleaned = item.replace('&', '').trim();
       const [key, value] = cleaned.split(':');
@@ -52,20 +60,14 @@ exports.idCardVerification = async (req, res, next) => {
         var roles=i.value
     }
     
-    console.log(dept.toLowerCase());
-    console.log(roles.toLowerCase());
-    
-    
     const findRole=await role.findOne({name:roles.toLowerCase()})
     const findDept=await department.findOne({name:dept.toLowerCase()})
     const findRoleDept=await roleDept.findOne({rid:findRole._id,did:findDept._id})
 
-    const editUser=await user.findOneAndUpdate({_id:req.user._id},{$set:{rdid:findRoleDept._id,idCard:req.file.path,isVerified:1}},{new:true});
-    console.log(editUser);
-    
-    // return res
-    //     .status(200)
-    //     .send({ success: true, data: newIdCards });
+    const editUser=await user.findOneAndUpdate({_id:req.user._id},{$set:{rdid:findRoleDept._id,idCard:req.file.path,isVerified:1}},{new:true});    
+    return res
+        .status(200)
+        .send({ success: true, data: editUser });
   } catch (err) {
     console.error("FastAPI Error:", err.message);
     return next(new ApiError(err));

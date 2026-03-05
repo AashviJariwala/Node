@@ -8,6 +8,8 @@ require("./config/myconn");
 const adminRoutes=require("./ADMIN/routes/adminRoutes");
 const loginRoutes = require("./routes/loginRoutes");
 const authenticationRoutes = require("./routes/authenticationRoutes");
+const calendarRoutes = require("./routes/calendarRoutes");
+
 const passport = require("./auth/passport");
 
 const app = express();
@@ -27,6 +29,8 @@ app.use(passport.session());
 app.use("/admin", adminRoutes);
 app.use("/login", loginRoutes);
 app.use("/auth", authenticationRoutes);
+app.use("/calendar", calendarRoutes);
+
 app.use(errorHandler);
 
 app.listen(3000, () => console.log("Listening on 3000"));
