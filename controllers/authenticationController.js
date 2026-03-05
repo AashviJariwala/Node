@@ -14,7 +14,6 @@ exports.idCardVerification = async (req, res, next) => {
     if (!req.file) {
       return res.status(400).json({ success: false, message: "No file uploaded" });
     }
-    console.log(req.file);
     
     const filePath = req.file.path;
 
@@ -60,12 +59,12 @@ exports.idCardVerification = async (req, res, next) => {
     const findDept=await department.findOne({name:dept.toLowerCase()})
     const findRoleDept=await roleDept.findOne({rid:findRole._id,did:findDept._id})
 
-    const editUser=await user.findOneAndUpdate({_id:req.user._id},{$set:{rdid:findRoleDept._id,idCard:req.file.path,isVerified:1}},{new:true});
+    const editUser=await user.findOneAndUpdate({_id:req.user._id},{$set:{rdid:findRoleDept._id,idCard:req.file.filename,isVerified:1}},{new:true});
     console.log(editUser);
     
-    // return res
-    //     .status(200)
-    //     .send({ success: true, data: newIdCards });
+    return res
+        .status(200)
+        .send({ success: true, data: editUser });
   } catch (err) {
     console.error("FastAPI Error:", err.message);
     return next(new ApiError(err));

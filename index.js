@@ -8,19 +8,25 @@ require("./config/myconn");
 const adminRoutes=require("./ADMIN/routes/adminRoutes");
 const loginRoutes = require("./routes/loginRoutes");
 const authenticationRoutes = require("./routes/authenticationRoutes");
+
 const passport = require("./auth/passport");
 
 const app = express();
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(session({
-  secret:process.env.SESSION_SECRET,
-  saveUninitialized:false,
-  resave:false,
-}));
+
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET,
+    saveUninitialized: false,
+    resave: false,
+  })
+);
+app.use("/public", express.static("public"));
 app.use(cors());
-app.use(morgan("dev")); 
+app.use(morgan("dev"));
+
 app.use(passport.initialize());
 app.use(passport.session());
 

@@ -3,6 +3,7 @@ const {verifyToken}=require("../../utils/helper");
 const adminLogin = require("../controllers/adminLogin");
 const roleController = require("../controllers/roleController");
 const departmentController = require("../controllers/departmentController");
+const userController = require("../controllers/userController");
 
 const router = express.Router();
 router.post("/", adminLogin.login);
@@ -34,6 +35,11 @@ router.put(
   "/editDept/:id",
   verifyToken,
   departmentController.editDept
+);
+router.get(
+  "/displayUser",
+  verifyToken,
+  userController.displayUsers
 );
 
 module.exports = router;
