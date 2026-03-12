@@ -8,7 +8,8 @@ const calendarEventsSchema = new mongoose.Schema({
     end: { type: mongoose.Schema.Types.Date},
     uid: { type: mongoose.Schema.ObjectId,ref:"user" },
     googleEventID:{ type: String },
-    updatedAt:{ type: mongoose.Schema.Types.Date}
+    created:{ type: mongoose.Schema.Types.Date},
+    updated:{ type: mongoose.Schema.Types.Date}
 });
 
 // Apply toJSON transform on the schema
