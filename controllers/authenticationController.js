@@ -53,11 +53,13 @@ exports.idCardVerification = async (req, res, next) => {
     });
 
     for( var i of result){
-      if(i.label=="IEE Department")
+      if(i.label=="IEE Department" || i.label=="Department")
         var dept=i.value
       else
         var roles=i.value
     }
+    console.log(roles);
+    console.log(dept);
     
     const findRole=await role.findOne({name:roles.toLowerCase()})
     const findDept=await department.findOne({name:dept.toLowerCase()})
