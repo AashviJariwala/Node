@@ -8,5 +8,7 @@ const router = express.Router();
 
 router.get("/syncFromGoogle", verifyToken, calendarController.syncFromGoogle);
 router.post("/createEvent", verifyToken, calendarController.createEvent);
+router.delete("/deleteEvent/:id", verifyToken, calendarController.deleteEvent);
+
 
 module.exports = router;

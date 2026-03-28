@@ -12,10 +12,10 @@ exports.syncFromGoogle = async (req, res, next) => {
     });
     const ids = [];
 
-    // for (let e2 of events) {
     for (let e1 of googleEvents.data.items) {
       const existingEvent = await calendarEvents.findOne({
         googleEventID: e1.id,
+        uid: req.user._id,
       });
 
       if (!existingEvent) {
@@ -55,7 +55,7 @@ exports.syncFromGoogle = async (req, res, next) => {
         }
       }
     }
-    const events1 = await calendarEvents.find();
+    const events1 = await calendarEvents.find({ uid: req.user._id });
 
     for (let e2 of events1) {
       for (let e1 of googleEvents.data.items) {
@@ -67,7 +67,7 @@ exports.syncFromGoogle = async (req, res, next) => {
         await calendarEvents.findOneAndDelete({ _id: e2._id });
       }
     }
-    const events = await calendarEvents.find();
+    const events = await calendarEvents.find({ uid: req.user._id });
 
     return res.status(200).send({ success: true, data: events });
   } catch (err) {
@@ -78,29 +78,74 @@ exports.syncFromGoogle = async (req, res, next) => {
 
 exports.createEvent = async (req, res, next) => {
   try {
-    const { title,date, start, end, description } = req.body;
+    const { title, date, start, end, description } = req.body;
     const calendar = await getGoogleClient(req, res, next);
-    const startDate= `${date}T${start}:00+05:30`
-    const endDate= `${date}T${end}:00+05:30`
-    const event={
-      "summary":title,
-      "description":description,
-      "start":{
-        "dateTime":startDate,
-        "timeZone":"Asia/Kolkata"
+    const startDate = `${date}T${start}:00+05:30`;
+    const endDate = `${date}T${end}:00+05:30`;
+    const event = {
+      summary: title,
+      description: description,
+      start: {
+        dateTime: startDate,
+        timeZone: "Asia/Kolkata",
       },
-      "end":{
-        "dateTime":endDate,
-        "timeZone":"Asia/Kolkata"
+      end: {
+        dateTime: endDate,
+        timeZone: "Asia/Kolkata",
       },
-    }
-    const eventAdded=await calendar.events.insert({
-      calendarId:"primary",
-      resource:event
-    })
-    return res.status(200).send({ success: true, data: "Event added" });
+    };
+    const eventAdded = await calendar.events.insert({
+      calendarId: "primary",
+      resource: event,
+    });
+    await calendarEvents.create({
+      title,
+      description,
+      start: startDate,
+      end: endDate,
+      uid: req.user._id,
+      googleEventID: eventAdded.id,
+      created: eventAdded.created,
+      updated: eventAdded.updated,
+    });
+    return res.status(200).send({ success: true, msg: "Event added" });
   } catch (err) {
     console.error(err);
+    return next(new ApiError(err));
+  }
+};
+
+exports.deleteEvent = async (req, res, next) => {
+  try {
+    let id1 = req.params.id;
+    console.log(id1);
+    const calendar = await getGoogleClient(req, res, next);
+    const deleted = await calendar.events.delete({
+      calendarId: "primary",
+      eventId: id1,
+    });
+    const dbDelete = await calendarEvents.findOneAndDelete({
+      uid: req.user._id,
+      googleEventID: id1,
+    });
+    return res.status(200).send({ success: true, msg: "Event deleted" });
+  } catch (err) {
+    return next(new ApiError(err));
+  }
+};
+
+exports.editEvent = async (req, res, next) => {
+  try {
+    const newRole = await role.findOneAndUpdate(
+      { _id: req.params.id },
+      req.body,
+      { new: true },
+      { rawValidation: true }
+    );
+    return res
+      .status(200)
+      .send({ success: true, data: newRole, msg: "Updated" });
+  } catch (err) {
     return next(new ApiError(err));
   }
 };
