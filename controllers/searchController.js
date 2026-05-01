@@ -36,6 +36,7 @@ exports.userProfile= async (req, res, next) => {
     const user1=await user.find({_id:req.params.id});
     const events=await calendarEvents.find({uid:req.params.id});
     const data1={
+      name:user1[0].name,
       events:events,
       visibility:user1[0].visibility
     };

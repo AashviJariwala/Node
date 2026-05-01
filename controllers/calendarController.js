@@ -13,7 +13,6 @@ exports.syncFromGoogle = async (req, res, next) => {
       maxResults: 100,
     });
 
-    console.log(googleEvents.data.items);
     const ids = [];
 
     for (let e1 of googleEvents.data.items) {
