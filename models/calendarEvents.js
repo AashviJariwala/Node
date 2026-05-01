@@ -8,6 +8,7 @@ const calendarEventsSchema = new mongoose.Schema({
   end: { type: mongoose.Schema.Types.Date },
   uid: { type: mongoose.Schema.ObjectId, ref: "user" },
   googleEventID: { type: String },
+  mlink: { type: String },
   visibility: { type: Number, enum: [0, 1], default: 1 },
   created: { type: mongoose.Schema.Types.Date },
   updated: { type: mongoose.Schema.Types.Date },

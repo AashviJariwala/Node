@@ -1,13 +1,12 @@
 const mongoose = require("mongoose");
 
 const meetingSchema = new mongoose.Schema({
-  mlink: { type: String },
-  description: { type: String },
-  start: { type: mongoose.Schema.Types.Date },
-  end: { type: mongoose.Schema.Types.Date },
-  uid: { type: mongoose.Schema.ObjectId, ref: "user" },
   eid: { type: mongoose.Schema.ObjectId, ref: "calendarEvents" },
-  status: { type: String, enum: ["instant", "scheduled"], default: null },
+  status: {
+    type: String,
+    enum: ["instant", "scheduled", "completed"],
+    default: null,
+  },
   created: { type: mongoose.Schema.Types.Date },
   updated: { type: mongoose.Schema.Types.Date },
 });

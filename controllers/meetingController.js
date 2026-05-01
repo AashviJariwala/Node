@@ -1,8 +1,9 @@
 const { getGoogleClient } = require("../utils/helper");
 const calendarEvents = require("../models/calendarEvents");
+const meeting = require("../models/meeting");
 const ApiError = require("../utils/ApiError");
 
-exports.syncFromGoogle = async (req, res, next) => {
+exports.getAllMeetings = async (req, res, next) => {
   try {
     let s1;
     let end1;
@@ -39,7 +40,6 @@ exports.syncFromGoogle = async (req, res, next) => {
           end: end1,
           uid: req.user._id,
           googleEventID: e1.id,
-          mlink: e1.hangoutLink,
           visibility: req.user.visibility,
           created: e1.created,
           updated: e1.updated,
@@ -61,7 +61,6 @@ exports.syncFromGoogle = async (req, res, next) => {
                 end: end1,
                 uid: req.user._id,
                 googleEventID: e1.id,
-                mlink: e1.hangoutLink,
                 visibility: req.user.visibility,
                 created: e1.created,
                 updated: e1.updated,
