@@ -9,6 +9,16 @@ const router = express.Router();
 router.get("/syncFromGoogle", verifyToken, calendarController.syncFromGoogle);
 router.post("/createEvent", verifyToken, calendarController.createEvent);
 router.delete("/deleteEvent/:id", verifyToken, calendarController.deleteEvent);
-
+router.put(
+  "/editEventVisibility/:id/:visibility",
+  verifyToken,
+  calendarController.editEventVisibility
+);
+router.get("/getVisibility/:id", verifyToken, calendarController.getVisibility);
+router.put(
+  "/editEvent/:id/:googleId",
+  verifyToken,
+  calendarController.editEvent
+);
 
 module.exports = router;

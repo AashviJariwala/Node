@@ -4,12 +4,16 @@ const ApiError = require("../utils/ApiError");
 
 exports.syncFromGoogle = async (req, res, next) => {
   try {
+    let s1;
+    let end1;
     const calendar = await getGoogleClient(req, res, next);
 
     const googleEvents = await calendar.events.list({
       calendarId: "primary",
       maxResults: 100,
     });
+
+    console.log(googleEvents.data.items);
     const ids = [];
 
     for (let e1 of googleEvents.data.items) {
@@ -18,14 +22,25 @@ exports.syncFromGoogle = async (req, res, next) => {
         uid: req.user._id,
       });
 
+      if ("date" in e1.start) {
+        s1 = e1.start.date;
+        let tmpEnd = new Date(e1.end.date);
+        tmpEnd.setDate(tmpEnd.getDate() - 1);
+        end1 = tmpEnd.toISOString().split("T")[0];
+      } else {
+        s1 = e1.start.dateTime;
+        end1 = e1.end.dateTime;
+      }
+
       if (!existingEvent) {
-        await calendarEvents.create({
+        const newEvent = await calendarEvents.create({
           title: e1.summary,
           description: e1.description,
-          start: e1.start.dateTime,
-          end: e1.end.dateTime,
+          start: s1,
+          end: end1,
           uid: req.user._id,
           googleEventID: e1.id,
+          visibility: req.user.visibility,
           created: e1.created,
           updated: e1.updated,
         });
@@ -42,10 +57,11 @@ exports.syncFromGoogle = async (req, res, next) => {
               $set: {
                 title: e1.summary,
                 description: e1.description,
-                start: e1.start.dateTime,
-                end: e1.end.dateTime,
+                start: s1,
+                end: end1,
                 uid: req.user._id,
                 googleEventID: e1.id,
+                visibility: req.user.visibility,
                 created: e1.created,
                 updated: e1.updated,
               },
@@ -55,6 +71,7 @@ exports.syncFromGoogle = async (req, res, next) => {
         }
       }
     }
+
     const events1 = await calendarEvents.find({ uid: req.user._id });
 
     for (let e2 of events1) {
@@ -105,6 +122,7 @@ exports.createEvent = async (req, res, next) => {
       end: endDate,
       uid: req.user._id,
       googleEventID: eventAdded.id,
+      visibility: req.user.visibility,
       created: eventAdded.created,
       updated: eventAdded.updated,
     });
@@ -136,16 +154,74 @@ exports.deleteEvent = async (req, res, next) => {
 
 exports.editEvent = async (req, res, next) => {
   try {
-    const newRole = await role.findOneAndUpdate(
+    const { title, date, start, end, description } = req.body;
+    const calendar = await getGoogleClient(req, res, next);
+    const startDate = `${date}T${start}:00+05:30`;
+    const endDate = `${date}T${end}:00+05:30`;
+    const event = {
+      summary: title,
+      description: description,
+      start: {
+        dateTime: startDate,
+        timeZone: "Asia/Kolkata",
+      },
+      end: {
+        dateTime: endDate,
+        timeZone: "Asia/Kolkata",
+      },
+    };
+    const eventUpdated = await calendar.events.update({
+      calendarId: "primary",
+      eventId: req.params.googleId,
+      resource: event,
+    });
+
+    const editEvents = await calendarEvents.findOneAndUpdate(
       { _id: req.params.id },
-      req.body,
-      { new: true },
-      { rawValidation: true }
+      {
+        title,
+        description,
+        start: startDate,
+        end: endDate,
+        uid: req.user._id,
+        googleEventID: req.params.googleId,
+        visibility: req.user.visibility,
+        created: eventUpdated.created,
+        updated: eventUpdated.updated,
+      },
+      { new: true }
     );
-    return res
-      .status(200)
-      .send({ success: true, data: newRole, msg: "Updated" });
+
+    return res.status(200).send({ success: true, data: editEvents });
   } catch (err) {
+    console.error(err);
+    return next(new ApiError(err));
+  }
+};
+
+exports.editEventVisibility = async (req, res, next) => {
+  try {
+    console.log(req.params.id);
+    const visibility = req.params.visibility === "true" ? 1 : 0;
+
+    const editVisibility = await calendarEvents.findOneAndUpdate(
+      { _id: req.params.id },
+      { $set: { visibility: visibility } },
+      { new: true }
+    );
+    return res.status(200).send({ success: true, data: editVisibility });
+  } catch (err) {
+    console.error(err.message);
+    return next(new ApiError(err));
+  }
+};
+
+exports.getVisibility = async (req, res, next) => {
+  try {
+    const e1 = await calendarEvents.find({ _id: req.params.id });
+    return res.status(200).send({ success: true, data: e1[0].visibility });
+  } catch (err) {
+    console.error(err.message);
     return next(new ApiError(err));
   }
 };

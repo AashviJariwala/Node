@@ -9,6 +9,8 @@ const adminRoutes = require("./ADMIN/routes/adminRoutes");
 const loginRoutes = require("./routes/loginRoutes");
 const authenticationRoutes = require("./routes/authenticationRoutes");
 const calendarRoutes = require("./routes/calendarRoutes");
+const searchRoutes = require("./routes/searchRoutes");
+const userRoutes = require("./routes/userRoutes");
 
 const passport = require("./auth/passport");
 
@@ -35,6 +37,8 @@ app.use("/admin", adminRoutes);
 app.use("/login", loginRoutes);
 app.use("/auth", authenticationRoutes);
 app.use("/calendar", calendarRoutes);
+app.use("/search", searchRoutes);
+app.use("/user", userRoutes);
 
 app.use(errorHandler);
 
