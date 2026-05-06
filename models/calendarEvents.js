@@ -9,6 +9,7 @@ const calendarEventsSchema = new mongoose.Schema({
   uid: { type: mongoose.Schema.ObjectId, ref: "user" },
   googleEventID: { type: String },
   mlink: { type: String },
+  reminderTime: { type: mongoose.Schema.Types.Date },
   visibility: { type: Number, enum: [0, 1], default: 1 },
   created: { type: mongoose.Schema.Types.Date },
   updated: { type: mongoose.Schema.Types.Date },

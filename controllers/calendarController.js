@@ -1,11 +1,15 @@
 const { getGoogleClient } = require("../utils/helper");
 const calendarEvents = require("../models/calendarEvents");
 const ApiError = require("../utils/ApiError");
+const meeting = require("../models/meeting");
 
 exports.syncFromGoogle = async (req, res, next) => {
   try {
     let s1;
     let end1;
+    let d1 = Date.now();
+    let status;
+    let rt;
     const calendar = await getGoogleClient(req, res, next);
 
     const googleEvents = await calendar.events.list({
@@ -22,13 +26,14 @@ exports.syncFromGoogle = async (req, res, next) => {
       });
 
       if ("date" in e1.start) {
-        s1 = e1.start.date;
+        s1 = new Date(e1.start.date);
+
         let tmpEnd = new Date(e1.end.date);
         tmpEnd.setDate(tmpEnd.getDate() - 1);
-        end1 = tmpEnd.toISOString().split("T")[0];
+        end1 = tmpEnd;
       } else {
-        s1 = e1.start.dateTime;
-        end1 = e1.end.dateTime;
+        s1 = new Date(e1.start.dateTime);
+        end1 = new Date(e1.end.dateTime);
       }
 
       if (!existingEvent) {
@@ -44,6 +49,26 @@ exports.syncFromGoogle = async (req, res, next) => {
           created: e1.created,
           updated: e1.updated,
         });
+
+        if (newEvent.mlink) {
+          status = new Date(end1) < d1 ? "completed" : "scheduled";
+          rt = new Date(s1.getTime() - 10 * 60 * 1000);
+          const editReminTime = await calendarEvents.findOneAndUpdate(
+            { _id: newEvent._id },
+            {
+              $set: {
+                reminderTime: rt,
+              },
+            },
+            { new: true }
+          );
+          const newMeeting = await meeting.create({
+            eid: newEvent._id,
+            status,
+            created: e1.created,
+            updated: e1.updated,
+          });
+        }
       } else {
         const c1 = new Date(e1.created);
         const format1 = c1.toISOString().split(".")[0];
@@ -51,7 +76,7 @@ exports.syncFromGoogle = async (req, res, next) => {
         const format2 = u1.toISOString().split(".")[0];
         if (format1.match(format2));
         else {
-          await calendarEvents.findOneAndUpdate(
+          const editedEvents = await calendarEvents.findOneAndUpdate(
             { _id: existingEvent._id },
             {
               $set: {
@@ -69,6 +94,32 @@ exports.syncFromGoogle = async (req, res, next) => {
             },
             { new: true }
           );
+
+          if (editedEvents.mlink) {
+            status = new Date(end1) < d1 ? "completed" : "scheduled";
+            rt = new Date(s1.getTime() - 10 * 60 * 1000);
+            const editReminTime = await calendarEvents.findOneAndUpdate(
+              { _id: editedEvents._id },
+              {
+                $set: {
+                  reminderTime: rt,
+                },
+              },
+              { new: true }
+            );
+            const newMeeting = await meeting.findOneAndUpdate(
+              {
+                eid: editedEvents._id,
+              },
+              {
+                $set: {
+                  status,
+                  created: e1.created,
+                  updated: e1.updated,
+                },
+              }
+            );
+          }
         }
       }
     }
@@ -82,6 +133,7 @@ exports.syncFromGoogle = async (req, res, next) => {
         }
       }
       if (!ids.includes(e2.googleEventID)) {
+        await meeting.findOneAndDelete({ eid: e2._id });
         await calendarEvents.findOneAndDelete({ _id: e2._id });
       }
     }
