@@ -2,6 +2,7 @@ const { getGoogleClient } = require("../utils/helper");
 const calendarEvents = require("../models/calendarEvents");
 const meeting = require("../models/meeting");
 const ApiError = require("../utils/ApiError");
+const { randomUUID } = require('crypto');
 
 exports.getAllMeetings = async (req, res, next) => {
   try {
@@ -93,40 +94,50 @@ exports.getAllMeetings = async (req, res, next) => {
   }
 };
 
-exports.createEvent = async (req, res, next) => {
+exports.creatInstantMeetingEvent = async (req, res, next) => {
   try {
-    const { title, date, start, end, description } = req.body;
+    var d=new Date();
     const calendar = await getGoogleClient(req, res, next);
-    const startDate = `${date}T${start}:00+05:30`;
-    const endDate = `${date}T${end}:00+05:30`;
     const event = {
-      summary: title,
-      description: description,
+      summary: "Instant Meeting",
+      description:  "",
       start: {
-        dateTime: startDate,
-        timeZone: "Asia/Kolkata",
+        dateTime: d.toISOString(),
       },
       end: {
-        dateTime: endDate,
-        timeZone: "Asia/Kolkata",
+        dateTime: d.toISOString(),
+      },
+      conferenceData: {
+        createRequest: {
+          requestId: randomUUID(),
+        },
       },
     };
     const eventAdded = await calendar.events.insert({
       calendarId: "primary",
       resource: event,
+       conferenceDataVersion: 1
     });
-    await calendarEvents.create({
-      title,
-      description,
-      start: startDate,
-      end: endDate,
+    
+    const mlink=eventAdded.data.hangoutLink;
+    const mevent=await calendarEvents.create({
+      title:eventAdded.data.summary,
+      description:'',
+      start:eventAdded.data.start.dateTime,
+      end:eventAdded.data.end.dateTime,
       uid: req.user._id,
-      googleEventID: eventAdded.id,
+      mlink: eventAdded.data.hangoutLink,
       visibility: req.user.visibility,
-      created: eventAdded.created,
-      updated: eventAdded.updated,
+      googleEventID: eventAdded.data.id,
+      created: eventAdded.data.created,
+      updated: eventAdded.data.updated,
     });
-    return res.status(200).send({ success: true, msg: "Event added" });
+
+    await meeting.create({
+      eid:mevent._id,
+      status:"instant"
+    })
+    return res.status(200).send({ success: true, meetLink: mlink});
   } catch (err) {
     console.error(err);
     return next(new ApiError(err));
