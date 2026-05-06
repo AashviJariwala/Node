@@ -48,6 +48,7 @@ exports.userProfile= async (req, res, next) => {
 };
 
 function generateHourlySlots(date) {
+  
   const slots = [];
 
   for (let i = 0; i < 24; i++) {
@@ -63,92 +64,50 @@ function generateHourlySlots(date) {
   return slots;
 }
 
-function getSlotStatus(events, slotStart, slotEnd) {
-  let hasOverlap = false;
-  let fullyCovered = false;
-
-  for (let event of events) {
+function isUserBusy(events, slotStart, slotEnd) {
+  return events.some(event => {
     const eventStart = new Date(event.start);
     const eventEnd = new Date(event.end);
 
-    if (slotStart < eventEnd && slotEnd > eventStart) {
-      hasOverlap = true;
-
-      if (eventStart <= slotStart && eventEnd >= slotEnd) {
-        fullyCovered = true;
-        break;
-      }
-    }
-  }
-
-  if (fullyCovered) return "BUSY";
-  if (hasOverlap) return "PARTIAL";
-  return "FREE";
+    return slotStart < eventEnd && slotEnd > eventStart;
+  });
 }
 
 exports.searchByTimeslot= async (req, res, next) => {
    try {
-    const  uid  = req.params.id;
-    
+      const  {uid}  = req.body;
+      // for (let id of uid) {
+      // console.log(id);
+      // }
+      
     const slots = generateHourlySlots(Date.now());
 
-    const result = [];
+    const freeSlots = [];
 
-    for (let id of uid) {
-      const events = await calendarEvents.find({uid:id})
-      events.map((e)=>{
-        console.log(events);
-      })
+    for (let slot of slots) {
+      let allFree = true;
 
-      const slotStatus = slots.map((slot) => ({
-        time: slot.label,
-        status: getSlotStatus(events, slot.start, slot.end),
-      }));
+       for (let id of uid) {
+        const events = await calendarEvents.find({
+          uid: id,
+        });
 
-      result.push({
-        name,
-        slots: slotStatus,
-      });
-      console.log(result);
-      
+        if (isUserBusy(events, slot.start, slot.end)) {
+          allFree = false;
+          break;
+        }
+      }
+
+      if (allFree) {
+        freeSlots.push(slot.label);
+      }
     }
-
-    // return res.status(200).send({ success: true, data: events2 });
+    return res.status(200).send({ success: true, data: freeSlots });
     } catch (err) {
         console.error(err.message);
         return next(new ApiError(err));
     }
 };
-
-
-
-// exports.searchByTimeslot= async (req, res, next) => {
-//   try {
-//     const now = new Date();
-//     // Get first day of week (Sunday)
-//     const firstDay = new Date(now);
-//     firstDay.setDate(now.getDate() - now.getDay());
-//     firstDay.setHours(0, 0, 0, 0);
-
-//     // Get last day of week (Saturday)
-//     const lastDay = new Date(now);
-//     lastDay.setDate(now.getDate() + (6 - now.getDay()));
-//     lastDay.setHours(23, 59, 59, 999);
-//     const events=await calendarEvents.find();
-//     var events2=[];
-//     const e1=events.map((e)=>{
-//       if (e.start >= firstDay && e.start <= lastDay) {
-//            events2.push(e);
-//       } 
-//       else
-//         return null;
-//     })
-//     return res.status(200).send({ success: true, data: events2 });
-//   } catch (err) {
-//     console.error(err.message);
-//     return next(new ApiError(err));
-//   }
-// };
 
 
 
