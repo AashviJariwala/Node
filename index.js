@@ -5,6 +5,7 @@ const { errorHandler } = require("./middleware/errorHandler");
 const session = require("express-session");
 require("dotenv").config();
 require("./config/myconn");
+const { sendReminders } = require("./jobs/sendReminders");
 const adminRoutes = require("./ADMIN/routes/adminRoutes");
 const loginRoutes = require("./routes/loginRoutes");
 const authenticationRoutes = require("./routes/authenticationRoutes");
@@ -41,6 +42,8 @@ app.use("/calendar", calendarRoutes);
 app.use("/search", searchRoutes);
 app.use("/user", userRoutes);
 app.use("/meeting", meetingRoutes);
+
+sendReminders();
 
 app.use(errorHandler);
 

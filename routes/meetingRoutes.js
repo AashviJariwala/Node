@@ -8,5 +8,7 @@ const router = express.Router();
 
 router.post("/creatInstantMeetingEvent", verifyToken, meetingController.creatInstantMeetingEvent);
 
+router.get("/getAllMeetings",verifyToken, meetingController.getAllMeetings);
+router.post("/sendNoti", verifyToken, meetingController.sendNoti);
 
 module.exports = router;
