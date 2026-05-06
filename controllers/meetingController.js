@@ -49,9 +49,7 @@ exports.sendNoti = async (req, res, next) => {
       const uemail = await user.findOne({ _id: m });
       emails.push(uemail.email);
     }
-    const events = await calendarEvents.find({ uid: req.user._id });
 
-    return res.status(200).send({ success: true, data: events });
      sendMail(
       req.user.email,
       meetingDetails.eid.mlink,

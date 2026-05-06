@@ -78,7 +78,6 @@ exports.getGoogleClient = async (req, res, next) => {
 };
 
 exports.sendMail = async (email, mlink, startTime, title, name, users) => {
-  console.log("sendd")
   const mailOptions = {
     to: users,
     subject: "Meeting Notification",
@@ -184,5 +183,3 @@ exports.formatToISTRange = (startISO, durationMinutes = 60) => {
 
   return `${datePart} · ${startTime} (IST)`;
 };
-
-

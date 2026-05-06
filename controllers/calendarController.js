@@ -189,12 +189,16 @@ exports.createEvent = async (req, res, next) => {
 exports.deleteEvent = async (req, res, next) => {
   try {
     let id1 = req.params.id;
-    console.log(id1);
     const calendar = await getGoogleClient(req, res, next);
     const deleted = await calendar.events.delete({
       calendarId: "primary",
       eventId: id1,
     });
+    const events1 = await calendarEvents.findOne({
+      uid: req.user._id,
+      googleEventID: id1,
+    });
+    if (events1.mlink) await meeting.findOneAndDelete({ eid: events1._id });
     const dbDelete = await calendarEvents.findOneAndDelete({
       uid: req.user._id,
       googleEventID: id1,
