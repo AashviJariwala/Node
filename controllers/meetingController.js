@@ -106,7 +106,9 @@ exports.creatInstantMeetingEvent = async (req, res, next) => {
 
     await meeting.create({
       eid:mevent._id,
-      status:"instant"
+      status:"instant",
+      created: mevent.created,
+      updated: mevent.updated
     })
     return res.status(200).send({ success: true, meetLink: mlink});
   } catch (err) {
@@ -115,6 +117,59 @@ exports.creatInstantMeetingEvent = async (req, res, next) => {
   }
 };
 
+
+exports.scheduleMeeting = async (req, res, next) => {
+  try {
+    const { title, date, start, end, description } = req.body;
+    const calendar = await getGoogleClient(req, res, next);
+    const startDate = `${date}T${start}:00+05:30`;
+    const endDate = `${date}T${end}:00+05:30`;
+    const event = {
+      summary: title,
+      description: description,
+      start: {
+        dateTime: startDate,
+      },
+      end: {
+        dateTime: endDate,
+      },
+       conferenceData: {
+        createRequest: {
+          requestId: randomUUID(),
+        },
+      },
+    };
+    const eventAdded = await calendar.events.insert({
+      calendarId: "primary",
+      resource: event,
+       conferenceDataVersion: 1
+    });
+    
+    const mevent=await calendarEvents.create({
+      title:eventAdded.data.summary,
+      description:eventAdded.data.description,
+      start:eventAdded.data.start.dateTime,
+      end:eventAdded.data.end.dateTime,
+      uid: req.user._id,
+      mlink: eventAdded.data.hangoutLink,
+      visibility: req.user.visibility,
+      googleEventID: eventAdded.data.id,
+      created: eventAdded.data.created,
+      updated: eventAdded.data.updated,
+    });
+
+    await meeting.create({
+      eid:mevent._id,
+      status:"scheduled",
+      created: mevent.created,
+      updated: mevent.updated
+    })
+    return res.status(200).send({ success: true, data: mevent});
+  } catch (err) {
+    console.error(err);
+    return next(new ApiError(err));
+  }
+};
 
    
  

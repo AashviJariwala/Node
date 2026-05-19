@@ -16,3 +16,4 @@ router.get("/getUserDetails", verifyToken, userController.getUserDetails);
 
 
 module.exports = router;
+ 
