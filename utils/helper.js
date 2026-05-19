@@ -61,9 +61,9 @@ exports.getGoogleClient = async (req, res, next) => {
       process.env.GOOGLE_CLIENT_SECRET,
       process.env.GOOGLE_REDIRECT_URI
     );
-
+    
     const googleTokens = await user
-      .findOne({ _id: req.user.id })
+      .findOne({ _id: req.user._id })
       .populate("gid");
     oAuth2Client.setCredentials({
       access_token: googleTokens.gid.accessToken,
