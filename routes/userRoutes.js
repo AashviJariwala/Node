@@ -12,5 +12,7 @@ router.put(
 );
 
 router.get("/getVisibility", verifyToken, userController.getVisibility);
+router.get("/getUserDetails", verifyToken, userController.getUserDetails);
+
 
 module.exports = router;

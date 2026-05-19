@@ -15,26 +15,29 @@ exports.sendReminders = () => {
         .find({ status: "scheduled" })
         .populate({ path: "eid", populate: { path: "uid" } });
 
-      for (let m of m1) {
-        const d1 = await formatToISTRange(m.eid.start);
-        const users = await meetingUser.findOne({ mid: m._id }).populate("uid");
-        if (users) {
-          for (u of users.uid) {
-            emails.push(u.email);
-          }
-          if (m.eid.reminderTime >= oneMinuteAgo && m.eid.reminderTime <= now) {
-            console.log("inside");
-            sendMail(
-              m.eid.uid.email,
-              m.eid.mlink,
-              d1,
-              m.eid.title,
-              m.eid.uid.name,
-              emails
-            );
+      if(m1.length!=0){
+        for (let m of m1) {
+          const d1 = await formatToISTRange(m.eid.start);
+          const users = await meetingUser.findOne({ mid: m._id }).populate("uid");
+          if (users) {
+            for (u of users.uid) {
+              emails.push(u.email);
+            }
+            if (m.eid.reminderTime >= oneMinuteAgo && m.eid.reminderTime <= now) {
+              console.log("inside");
+              sendMail(
+                m.eid.uid.email,
+                m.eid.mlink,
+                d1,
+                m.eid.title,
+                m.eid.uid.name,
+                emails
+              );
+            }
           }
         }
       }
+
     } catch (error) {
       console.log("Reminders error : ", error);
     }

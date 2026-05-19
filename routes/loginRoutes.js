@@ -32,7 +32,7 @@ router.get(
       ? "User is new"
       : "User exists";
 
-    res.redirect(`http://localhost:5173/google/callback?msg=${encodeURIComponent(msg)}&token=${token}`);
+    res.redirect(`${process.env.REACT_URL}/google/callback?msg=${encodeURIComponent(msg)}&token=${token}`);
 
   }
 );

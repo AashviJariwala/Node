@@ -54,17 +54,20 @@ exports.verifyToken = (req, res, next) => {
   }
 };
 
-exports.getGoogleClient = async (req, res, next) => {
+exports.getGoogleClient = async (req, res, id) => {
   try {
+    let googleTokens;
     const oAuth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET,
       process.env.GOOGLE_REDIRECT_URI
     );
+    if (id == null) {
+      googleTokens = await user.findOne({ _id: req.user._id }).populate("gid");
+    } else {
+      googleTokens = await user.findOne({ _id: id }).populate("gid");
+    }
 
-    const googleTokens = await user
-      .findOne({ _id: req.user.id })
-      .populate("gid");
     oAuth2Client.setCredentials({
       access_token: googleTokens.gid.accessToken,
       refresh_token: googleTokens.gid.refreshToken,

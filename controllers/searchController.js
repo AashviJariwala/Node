@@ -23,6 +23,13 @@ exports.searchProfile = async (req, res, next) => {
           },
         },
       },
+       {
+    $match: {
+      _id: {
+        $ne: req.user._id, 
+      },
+    },
+  },
     ]);
     return res.status(200).send({ success: true, data: users });
   } catch (err) {

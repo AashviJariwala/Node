@@ -20,5 +20,15 @@ router.put(
   verifyToken,
   calendarController.editEvent
 );
+router.post(
+  "/createCollaborativeEvent",
+  verifyToken,
+  calendarController.createCollaborativeEvent
+);
+router.get(
+  "/checkCollabEvent/:id",
+  verifyToken,
+  calendarController.checkCollabEvent
+);
 
 module.exports = router;

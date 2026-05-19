@@ -68,7 +68,7 @@ exports.sendNoti = async (req, res, next) => {
 exports.creatInstantMeetingEvent = async (req, res, next) => {
   try {
     var d=new Date();
-    const calendar = await getGoogleClient(req, res, next);
+    const calendar = await getGoogleClient(req, res, null);
     const event = {
       summary: "Instant Meeting",
       description:  "",

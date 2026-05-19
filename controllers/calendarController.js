@@ -1,5 +1,7 @@
 const { getGoogleClient } = require("../utils/helper");
 const calendarEvents = require("../models/calendarEvents");
+const collaborativeEvents = require("../models/collaborativeEvents");
+const mongoose = require("mongoose");
 const ApiError = require("../utils/ApiError");
 const meeting = require("../models/meeting");
 
@@ -10,7 +12,7 @@ exports.syncFromGoogle = async (req, res, next) => {
     let d1 = Date.now();
     let status;
     let rt;
-    const calendar = await getGoogleClient(req, res, next);
+    const calendar = await getGoogleClient(req, res, null);
 
     const googleEvents = await calendar.events.list({
       calendarId: "primary",
@@ -20,6 +22,14 @@ exports.syncFromGoogle = async (req, res, next) => {
     const ids = [];
 
     for (let e1 of googleEvents.data.items) {
+      const isCollabPartcipant = await collaborativeEvents.findOne({
+        uid: req.user._id,
+        hostGoogleEventID: e1.id,
+      });
+      if (isCollabPartcipant) {
+        console.log("event already existss!!!!!!");
+        continue;
+      }
       const existingEvent = await calendarEvents.findOne({
         googleEventID: e1.id,
         uid: req.user._id,
@@ -134,12 +144,22 @@ exports.syncFromGoogle = async (req, res, next) => {
       }
       if (!ids.includes(e2.googleEventID)) {
         await meeting.findOneAndDelete({ eid: e2._id });
+        await collaborativeEvents.findOneAndDelete({ eid: e2._id });
         await calendarEvents.findOneAndDelete({ _id: e2._id });
       }
     }
     const events = await calendarEvents.find({ uid: req.user._id });
+    const collabRec = await collaborativeEvents
+      .find({
+        uid: req.user._id,
+      })
+      .populate("eid");
 
-    return res.status(200).send({ success: true, data: events });
+    if (collabRec) {
+      const collabEvents = collabRec.map((e) => e.eid);
+      const allEvents = [...events, ...collabEvents];
+      return res.status(200).send({ success: true, data: allEvents });
+    } else return res.status(200).send({ success: true, data: events });
   } catch (err) {
     console.error(err);
     return next(new ApiError(err));
@@ -149,7 +169,7 @@ exports.syncFromGoogle = async (req, res, next) => {
 exports.createEvent = async (req, res, next) => {
   try {
     const { title, date, start, end, description } = req.body;
-    const calendar = await getGoogleClient(req, res, next);
+    const calendar = await getGoogleClient(req, res, null);
     const startDate = `${date}T${start}:00+05:30`;
     const endDate = `${date}T${end}:00+05:30`;
     const event = {
@@ -168,16 +188,17 @@ exports.createEvent = async (req, res, next) => {
       calendarId: "primary",
       resource: event,
     });
+    console.log(eventAdded);
     await calendarEvents.create({
       title,
       description,
       start: startDate,
       end: endDate,
       uid: req.user._id,
-      googleEventID: eventAdded.id,
+      googleEventID: eventAdded.data.id,
       visibility: req.user.visibility,
-      created: eventAdded.created,
-      updated: eventAdded.updated,
+      created: eventAdded.data.created,
+      updated: eventAdded.data.updated,
     });
     return res.status(200).send({ success: true, msg: "Event added" });
   } catch (err) {
@@ -189,14 +210,43 @@ exports.createEvent = async (req, res, next) => {
 exports.deleteEvent = async (req, res, next) => {
   try {
     let id1 = req.params.id;
-    const calendar = await getGoogleClient(req, res, next);
-    const deleted = await calendar.events.delete({
+
+    const calendar = await getGoogleClient(req, res, null);
+    const e1 = await calendar.events.get({
       calendarId: "primary",
       eventId: id1,
     });
+
     const events1 = await calendarEvents.findOne({
       uid: req.user._id,
       googleEventID: id1,
+    });
+
+    const collabEvent = await collaborativeEvents
+      .find({ eid: events1._id })
+      .populate("uid");
+    if (collabEvent.length != 0) {
+      console.log("collab");
+      await collaborativeEvents.deleteMany({ eid: events1._id });
+
+      for (let e of collabEvent) {
+        const calendar1 = await getGoogleClient(req, res, e.uid._id);
+        const e2 = await calendar1.events.list({
+          calendarId: "primary",
+          iCalUID: e1.data.iCalUID,
+        });
+
+        if (e2.data.items.length > 0) {
+          const deleted1 = await calendar1.events.delete({
+            calendarId: "primary",
+            eventId: e2.data.items[0].id,
+          });
+        }
+      }
+    }
+    const deleted = await calendar.events.delete({
+      calendarId: "primary",
+      eventId: id1,
     });
     if (events1.mlink) await meeting.findOneAndDelete({ eid: events1._id });
     const dbDelete = await calendarEvents.findOneAndDelete({
@@ -279,6 +329,98 @@ exports.getVisibility = async (req, res, next) => {
     return res.status(200).send({ success: true, data: e1[0].visibility });
   } catch (err) {
     console.error(err.message);
+    return next(new ApiError(err));
+  }
+};
+
+exports.createCollaborativeEvent = async (req, res, next) => {
+  try {
+    const { title, date, start, end, description, users } = req.body;
+
+    const calendar = await getGoogleClient(req, res, null);
+
+    const startDate = `${date}T${start}:00+05:30`;
+    const endDate = `${date}T${end}:00+05:30`;
+
+    const event = {
+      summary: title,
+      description: description,
+      start: {
+        dateTime: startDate,
+        timeZone: "Asia/Kolkata",
+      },
+      end: {
+        dateTime: endDate,
+        timeZone: "Asia/Kolkata",
+      },
+    };
+
+    const eventAdded = await calendar.events.insert({
+      calendarId: "primary",
+      resource: event,
+    });
+
+    const createdEvent = await calendarEvents.create({
+      title,
+      description,
+      start: startDate,
+      end: endDate,
+      uid: req.user._id, // host id
+      googleEventID: eventAdded.data.id,
+      visibility: req.user.visibility,
+      created: eventAdded.data.created,
+      updated: eventAdded.data.updated,
+    });
+
+    const collaborativeData = users.map((userId) => ({
+      eid: createdEvent._id,
+      uid: userId,
+      hostGoogleEventID: eventAdded.data.id,
+      created: eventAdded.data.created,
+      updated: eventAdded.data.updated,
+    }));
+
+    await collaborativeEvents.insertMany(collaborativeData);
+
+    await Promise.all(
+      users.map(async (userId) => {
+        const collabCalendar = await getGoogleClient(req, res, userId);
+        await collabCalendar.events.import({
+          calendarId: "primary",
+          resource: {
+            ...event,
+            iCalUID: eventAdded.data.iCalUID,
+          },
+        });
+      })
+    );
+
+    return res.status(200).send({
+      success: true,
+      msg: "Collaborative event created",
+    });
+  } catch (err) {
+    console.error(err);
+    return next(new ApiError(err));
+  }
+};
+
+exports.checkCollabEvent = async (req, res, next) => {
+  try {
+    const calEvent = await calendarEvents.findOne({ _id: req.params.id });
+    if (!calEvent)
+      return res.status(404).send({ success: false, msg: "Event not found" });
+    const collabRec = await collaborativeEvents
+      .findOne({
+        hostGoogleEventID: calEvent.googleEventID,
+      })
+      .populate("eid");
+    if (!collabRec) return res.status(200).send({ success: true, msg: true });
+    else if (collabRec.eid.uid.equals(req.user._id))
+      return res.status(200).send({ success: true, msg: true });
+    else return res.status(200).send({ success: true, msg: false });
+  } catch (err) {
+    console.error(err);
     return next(new ApiError(err));
   }
 };
