@@ -34,6 +34,8 @@ exports.getUserDetails = async (req, res, next) => {
     });
     const data={
       userName:user1.name,
+      userEmail:user1.email,
+      userIDCard:user1.idCard,
       userRole:user1.rdid.rid.name+"-"+user1.rdid.did.name
     }
     return res.status(200).send({ success: true, data:data});

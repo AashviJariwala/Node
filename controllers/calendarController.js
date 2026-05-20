@@ -198,18 +198,6 @@ exports.createEvent = async (req, res, next) => {
       calendarId: "primary",
       resource: event,
     });
-console.log("Google insert response:", JSON.stringify(eventAdded.data, null, 2));
-    // await calendarEvents.create({
-    //   title,
-    //   description,
-    //   start: startDate,
-    //   end: endDate,
-    //   uid: req.user._id,
-    //   googleEventID: eventAdded.data.id,
-    //   visibility: req.user.visibility,
-    //   created: eventAdded.data.created,
-    //   updated: eventAdded.data.updated,
-    // });
 
     const payload = {
   title,
@@ -222,10 +210,9 @@ console.log("Google insert response:", JSON.stringify(eventAdded.data, null, 2))
   created: eventAdded.data.created,
   updated: eventAdded.data.updated,
 };
-console.log("DB payload:", JSON.stringify(payload, null, 2));
+
 
 const saved = await calendarEvents.create(payload);
-console.log("Saved to DB:", saved._id);
     return res.status(200).send({ success: true, msg: "Event added" });
   } catch (err) {
     console.error(err);
