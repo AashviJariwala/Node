@@ -121,7 +121,6 @@ exports.sendMail = async (email, mlink, startTime, title, name, users) => {
   
         <!-- Date -->
         <p style="color:#555;">
-          Friday, May 1, 2026 · 2:45pm - 3:45pm (IST)
           ${startTime}
         </p>
   
@@ -131,10 +130,6 @@ exports.sendMail = async (email, mlink, startTime, title, name, users) => {
           ${name} <br/>
           ${email}
         </p>
-  
-        <!-- Guests -->
-        <p style="margin-top:20px;"><strong>Guests</strong></p>
-        <p style="color:#1a73e8;">View all event details</p>
   
       </div>
   

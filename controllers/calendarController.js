@@ -188,7 +188,6 @@ exports.createEvent = async (req, res, next) => {
       calendarId: "primary",
       resource: event,
     });
-    console.log(eventAdded);
     await calendarEvents.create({
       title,
       description,
