@@ -1,4 +1,4 @@
-const { getGoogleClient ,formatToISTRange} = require("../utils/helper");
+const { getGoogleClient, formatToISTRange } = require("../utils/helper");
 const calendarEvents = require("../models/calendarEvents");
 const collaborativeEvents = require("../models/collaborativeEvents");
 const mongoose = require("mongoose");
@@ -12,14 +12,14 @@ exports.syncFromGoogle = async (req, res, next) => {
     let d1 = Date.now();
     let status;
     let rt;
-    let startTime=[];
+    let startTime = [];
     const calendar = await getGoogleClient(req, res, null);
 
     const googleEvents = await calendar.events.list({
-       calendarId: "primary",
-  maxResults: 2500,          // increase the limit
-  singleEvents: true,        // expand recurring events
-  orderBy: "startTime",
+      calendarId: "primary",
+      maxResults: 2500, // increase the limit
+      singleEvents: true, // expand recurring events
+      orderBy: "startTime",
     });
 
     const ids = [];
@@ -138,25 +138,26 @@ exports.syncFromGoogle = async (req, res, next) => {
     }
 
     const events1 = await calendarEvents.find({ uid: req.user._id });
-const googleEventIds = new Set(googleEvents.data.items.map(e => e.id));
-
+    const googleEventIds = new Set(googleEvents.data.items.map((e) => e.id));
 
     for (let e2 of events1) {
-  if (e2.googleEventID && !googleEventIds.has(e2.googleEventID)) {
-    await meeting.findOneAndDelete({ eid: e2._id });
-    await collaborativeEvents.findOneAndDelete({ eid: e2._id });
-    await calendarEvents.findOneAndDelete({ _id: e2._id });
-  }
-}
-    const googleEvents1= await calendarEvents.find({ uid: req.user._id }).lean();
-      const eventData=await Promise.all(
-        googleEvents1.map(async(raw)=>{
+      if (e2.googleEventID && !googleEventIds.has(e2.googleEventID)) {
+        await meeting.findOneAndDelete({ eid: e2._id });
+        await collaborativeEvents.findOneAndDelete({ eid: e2._id });
+        await calendarEvents.findOneAndDelete({ _id: e2._id });
+      }
+    }
+    const googleEvents1 = await calendarEvents
+      .find({ uid: req.user._id })
+      .lean();
+    const eventData = await Promise.all(
+      googleEvents1.map(async (raw) => {
         return {
           ...raw,
-          dateTime: formatToISTRange(raw.start, raw.end)
-        }
-
-      }))
+          dateTime: formatToISTRange(raw.start, raw.end),
+        };
+      })
+    );
     const collabRec = await collaborativeEvents
       .find({
         uid: req.user._id,
@@ -167,11 +168,12 @@ const googleEventIds = new Set(googleEvents.data.items.map(e => e.id));
       const collabEvents = collabRec.map((e) => e.eid);
       const allEvents = [...eventData, ...collabEvents];
       return res.status(200).send({ success: true, data: allEvents });
-    } else{ 
-      return res.status(200).send({ success: true, data: eventData })}
+    } else {
+      return res.status(200).send({ success: true, data: eventData });
+    }
   } catch (err) {
     console.error(err);
-     console.error("DB create failed for event:", e1.id, err.message);
+    console.error("DB create failed for event:", e1.id, err.message);
     return next(new ApiError(err));
   }
 };
@@ -200,19 +202,18 @@ exports.createEvent = async (req, res, next) => {
     });
 
     const payload = {
-  title,
-  description,
-  start: startDate,
-  end: endDate,
-  uid: req.user._id,
-  googleEventID: eventAdded.data.id,  // Is this undefined?
-  visibility: req.user.visibility,
-  created: eventAdded.data.created,
-  updated: eventAdded.data.updated,
-};
-console.log("DB payload:", JSON.stringify(payload, null, 2));
+      title,
+      description,
+      start: startDate,
+      end: endDate,
+      uid: req.user._id,
+      googleEventID: eventAdded.data.id, // Is this undefined?
+      visibility: req.user.visibility,
+      created: eventAdded.data.created,
+      updated: eventAdded.data.updated,
+    };
 
-const saved = await calendarEvents.create(payload);
+    const saved = await calendarEvents.create(payload);
     return res.status(200).send({ success: true, msg: "Event added" });
   } catch (err) {
     console.error(err);
