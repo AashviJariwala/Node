@@ -43,7 +43,7 @@ app.use("/search", searchRoutes);
 app.use("/user", userRoutes);
 app.use("/meeting", meetingRoutes);
 
-sendReminders();
+// sendReminders();
 
 app.use(errorHandler);
 

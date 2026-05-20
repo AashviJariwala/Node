@@ -3,7 +3,7 @@ const { verifyToken } = require("../utils/helper");
 
 const searchController = require("../controllers/searchController");
 
-const router = express.Router();
+const router = express.Router(); 
 
 router.get("/showAllEmployee", verifyToken, searchController.showAllEmployee);
 router.get("/searchProfile/:name", verifyToken, searchController.searchProfile);

@@ -44,7 +44,7 @@ exports.sendNoti = async (req, res, next) => {
     const meetingDetails = await meeting
       .findOne({ _id: meetID })
       .populate("eid");
-    const d1 = await formatToISTRange(meetingDetails.eid.start);
+    const d1 = await formatToISTRange(meetingDetails.eid.start,meetingDetails.eid.end);
     for (m of participantID) {
       const uemail = await user.findOne({ _id: m });
       emails.push(uemail.email);

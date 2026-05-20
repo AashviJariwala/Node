@@ -17,7 +17,7 @@ exports.sendReminders = () => {
 
       if(m1.length!=0){
         for (let m of m1) {
-          const d1 = await formatToISTRange(m.eid.start);
+          const d1 = await formatToISTRange(m.eid.start,m.eid.end);
           const users = await meetingUser.findOne({ mid: m._id }).populate("uid");
           if (users) {
             for (u of users.uid) {

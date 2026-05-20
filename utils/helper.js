@@ -159,9 +159,9 @@ exports.sendMail = async (email, mlink, startTime, title, name, users) => {
   }
 };
 
-exports.formatToISTRange = (startISO, durationMinutes = 60) => {
+exports.formatToISTRange = (startISO, endISO,durationMinutes = 60) => {
   const start = new Date(startISO);
-
+  const end=new Date(endISO)
   // Convert to IST using Intl
   const optionsDate = {
     weekday: "long",
@@ -184,5 +184,9 @@ exports.formatToISTRange = (startISO, durationMinutes = 60) => {
   // Start time
   const startTime = new Intl.DateTimeFormat("en-IN", optionsTime).format(start);
 
-  return `${datePart} · ${startTime} (IST)`;
+  // End time
+  const endTime = new Intl.DateTimeFormat("en-IN", optionsTime).format(end);
+
+
+  return `${datePart} · ${startTime} - ${endTime} (IST)`;
 };
