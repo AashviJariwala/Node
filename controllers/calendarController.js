@@ -210,6 +210,7 @@ exports.createEvent = async (req, res, next) => {
   created: eventAdded.data.created,
   updated: eventAdded.data.updated,
 };
+console.log("DB payload:", JSON.stringify(payload, null, 2));
 
 const saved = await calendarEvents.create(payload);
     return res.status(200).send({ success: true, msg: "Event added" });
