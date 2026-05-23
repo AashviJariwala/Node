@@ -44,3 +44,14 @@ exports.getUserDetails = async (req, res, next) => {
     return next(new ApiError(err));
   }
 };
+
+exports.getIDCardUploadStatus = async (req, res, next) => {
+  try {
+    const user1 = await user.findOne({ _id: req.user._id });
+    console.log(user1.idCardUploaded)
+    return res.status(200).send({ success: true, data: user1.idCardUploaded});
+  } catch (err) {
+    console.error(err.message);
+    return next(new ApiError(err));
+  }
+};

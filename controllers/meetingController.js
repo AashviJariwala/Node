@@ -121,7 +121,7 @@ exports.creatInstantMeetingEvent = async (req, res, next) => {
 exports.scheduleMeeting = async (req, res, next) => {
   try {
     const { title, date, start, end, description } = req.body;
-    const calendar = await getGoogleClient(req, res, next);
+    const calendar = await getGoogleClient(req, res, null);
     const startDate = `${date}T${start}:00+05:30`;
     const endDate = `${date}T${end}:00+05:30`;
     const event = {

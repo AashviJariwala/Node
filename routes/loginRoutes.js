@@ -5,7 +5,6 @@ const jwt = require("jsonwebtoken");
 
 const router = express.Router();
 
-// 🔥 Google login route (start OAuth)
 router.get(
   "/google",
   myPass.authenticate("google", {
@@ -16,15 +15,13 @@ router.get(
     ],
     accessType: "offline",
     prompt: "consent",
-  })
+  }) 
 );
 
-// 🔥 Google callback route
-"email",
 router.get(
   "/auth/google/callback",
   myPass.authenticate("google", {
-    failureRedirect: "/login"
+    failureRedirect: `${process.env.REACT_URL}/?error=calendar_permission_denied`
   }),
   (req, res) => {
     const token = generateToken(req.user.user._id,req.user.user.email,null);

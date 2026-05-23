@@ -4,6 +4,7 @@ const googleTokensSchema = new mongoose.Schema({
     googleId: { type: String },
     accessToken: { type: String },
     refreshToken: { type: String },
+    expiryDate: { type: Number },
 });
 
 // Apply toJSON transform on the schema

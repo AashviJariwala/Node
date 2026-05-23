@@ -30,27 +30,6 @@ exports.displayDept = async (req, res,next) => {
   }
 };
 
-exports.deleteDept = async (req, res, next) => {
-  try {
-    let id1 = req.params.id;
-    var depts;
-    if (id1.includes(",")) {
-      const ids = id1.split(",");
-      for (var id of ids) {
-        depts = await department.findOneAndDelete({ _id: id });
-      }
-    } else depts = await department.findOneAndDelete({ _id: id1 });
-    if (!depts)
-      return res
-        .status(404)
-        .send({ success: true, error: "No such department found" });
-    else
-      return res.status(200).send({ success: true, msg: "Department deleted" });
-  } catch (err) {
-    return next(new ApiError(err));
-  }
-};
-
 exports.editDept = async (req, res, next) => {
   try {
     const newDept = await department.findOneAndUpdate(

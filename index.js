@@ -43,7 +43,20 @@ app.use("/search", searchRoutes);
 app.use("/user", userRoutes);
 app.use("/meeting", meetingRoutes);
 
-// sendReminders();
+sendReminders();
+
+app.use((err, req, res, next) => {
+  if (
+    err &&
+    err.message &&
+    err.message.toLowerCase().includes("failed to obtain access token")
+  ) {
+    return res.redirect(
+      `${process.env.REACT_URL}/?error=calendar_permission_denied`
+    );
+  }
+  next(err);
+});
 
 app.use(errorHandler);
 

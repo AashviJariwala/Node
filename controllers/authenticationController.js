@@ -13,7 +13,7 @@ exports.idCardVerification = async (req, res, next) => {
     if (!req.file) {
       return res
         .status(400)
-        .json({ success: false, message: "No file uploaded" });
+        .json({ success: false, msg: "No file uploaded" });
     }
 
     const filePath = req.file.path;
@@ -40,7 +40,7 @@ exports.idCardVerification = async (req, res, next) => {
       }
     }
     if (flag == false) {
-      return res.status(200).send({ success: true, msg: "Invalid id card" });
+      return res.status(502).send({ success: false, msg: "Invalid id card" });
     }
 
     const result = arr2.map((item) => {
@@ -74,6 +74,7 @@ exports.idCardVerification = async (req, res, next) => {
           rdid: findRoleDept._id,
           idCard: req.file.filename,
           isVerified: 1,
+          idCardUploaded:1
         },
       },
       { new: true }

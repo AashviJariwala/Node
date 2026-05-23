@@ -30,28 +30,6 @@ exports.displayRole = async (req, res, next) => {
   }
 };
 
-exports.deleteRole = async (req, res, next) => {
-  try {
-    let id1 = req.params.id;
-    console.log(id1);
-    var roles;
-    if (id1.includes(",")) {
-      const ids = id1.split(",");
-      for (var id of ids) {
-        console.log(id);
-        roles = await role.findOneAndDelete({ _id: id });
-      }
-    } else roles = await role.findOneAndDelete({ _id: id1 });
-    if (!roles)
-      return res
-        .status(404)
-        .send({ success: true, error: "No such role found" });
-    else return res.status(200).send({ success: true, msg: "Role deleted" });
-  } catch (err) {
-    return next(new ApiError(err));
-  }
-};
-
 exports.editRole = async (req, res, next) => {
   try {
     const newRole = await role.findOneAndUpdate(

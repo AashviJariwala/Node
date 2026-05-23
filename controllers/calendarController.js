@@ -173,7 +173,6 @@ exports.syncFromGoogle = async (req, res, next) => {
     }
   } catch (err) {
     console.error(err);
-    console.error("DB create failed for event:", e1.id, err.message);
     return next(new ApiError(err));
   }
 };
@@ -276,7 +275,7 @@ exports.deleteEvent = async (req, res, next) => {
 exports.editEvent = async (req, res, next) => {
   try {
     const { title, date, start, end, description } = req.body;
-    const calendar = await getGoogleClient(req, res, next);
+    const calendar = await getGoogleClient(req, res, null);
     const startDate = `${date}T${start}:00+05:30`;
     const endDate = `${date}T${end}:00+05:30`;
     const event = {

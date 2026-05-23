@@ -13,7 +13,7 @@ router.put(
 
 router.get("/getVisibility", verifyToken, userController.getVisibility);
 router.get("/getUserDetails", verifyToken, userController.getUserDetails);
-
+router.get("/getIDCardUploadStatus", verifyToken, userController.getIDCardUploadStatus);
 
 module.exports = router;
  
