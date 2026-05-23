@@ -23,7 +23,7 @@ exports.idCardVerification = async (req, res, next) => {
 
     // Call FastAPI
     const response = await axios.post(
-      "http://127.0.0.1:8000/extract-text",
+      "https://python-production-f595.up.railway.app/extract-text",
       form,
       {
         headers: form.getHeaders(),
