@@ -5,8 +5,6 @@ const roleDept = require("../models/roleDept");
 const ApiError = require("../utils/ApiError");
 const axios = require("axios");
 const FormData = require("form-data");
-const fs = require("fs");
-const path = require("path");
 
 exports.idCardVerification = async (req, res, next) => {
   try {
@@ -16,14 +14,18 @@ exports.idCardVerification = async (req, res, next) => {
         .json({ success: false, msg: "No file uploaded" });
     }
 
-    const filePath = req.file.path;
-
     const form = new FormData();
-    form.append("file", fs.createReadStream(filePath));
+    form.append("file", req.file.buffer, {
+      filename: req.file.originalname,
+      contentType: req.file.mimetype,
+    });
 
-    // Call FastAPI
     const response = await axios.post(
+<<<<<<< Updated upstream
       "https://python-production-f595.up.railway.app/extract-text",
+=======
+      `${process.env.PYTHON_OCR_URL || "http://127.0.0.1:8000"}/extract-text`,
+>>>>>>> Stashed changes
       form,
       {
         headers: form.getHeaders(),
@@ -72,9 +74,9 @@ exports.idCardVerification = async (req, res, next) => {
       {
         $set: {
           rdid: findRoleDept._id,
-          idCard: req.file.filename,
+          idCard: req.file.originalname,
           isVerified: 1,
-          idCardUploaded:1
+          idCardUploaded: 1
         },
       },
       { new: true }
