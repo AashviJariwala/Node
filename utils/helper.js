@@ -15,7 +15,7 @@ const transporter = nodemailer.createTransport({
 });
 
 exports.generateToken = (id, email, type) => {
-  const token = jwt.sign({ id, email, type }, process.env.JWT_SECRET);
+  const token = jwt.sign({ id, email, type }, process.env.JWT_SECRET,{expiresIn:"2h"});
   return token;
 };
 
@@ -56,49 +56,44 @@ exports.verifyToken = (req, res, next) => {
 };
 
 exports.getGoogleClient = async (req, res, id) => {
-  try {
-    const oAuth2Client = new google.auth.OAuth2(
-      process.env.GOOGLE_CLIENT_ID,
-      process.env.GOOGLE_CLIENT_SECRET,
-      process.env.GOOGLE_REDIRECT_URI
-    ); 
+  const oAuth2Client = new google.auth.OAuth2(
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_SECRET,
+    process.env.GOOGLE_REDIRECT_URI
+  );
 
-    let googleUser;
-    if (id == null) {
-      googleUser = await user.findOne({ _id: req.user._id }).populate("gid");
-    } else {
-      googleUser = await user.findOne({ _id: id }).populate("gid");
-    }
+  let googleUser;
+  if (id == null) {
+    googleUser = await user.findOne({ _id: req.user._id }).populate("gid");
+  } else {
+    googleUser = await user.findOne({ _id: id }).populate("gid");
+  }
 
-    const tokenData = googleUser.gid;
+  const tokenData = googleUser.gid;
 
-    oAuth2Client.setCredentials({
-      access_token: tokenData.accessToken,
-      refresh_token: tokenData.refreshToken,
-      expiry_date: tokenData.expiryDate,
+  oAuth2Client.setCredentials({
+    access_token: tokenData.accessToken,
+    refresh_token: tokenData.refreshToken,
+    expiry_date: tokenData.expiryDate,
+  });
+
+  const isExpired = tokenData.expiryDate
+    ? Date.now() >= tokenData.expiryDate - 5 * 60 * 1000
+    : true;
+
+  if (isExpired) {
+    console.log("Access token expired, refreshing...");
+    const { credentials } = await oAuth2Client.refreshAccessToken();
+
+    await googleTokens.findByIdAndUpdate(tokenData._id, {
+      accessToken: credentials.access_token,
+      expiryDate: credentials.expiry_date,
     });
 
-    const isExpired = tokenData.expiryDate
-      ? Date.now() >= tokenData.expiryDate - 5 * 60 * 1000
-      : true;
-
-    if (isExpired) {
-      console.log("Access token expired, refreshing...");
-      const { credentials } = await oAuth2Client.refreshAccessToken();
-
-      await googleTokens.findByIdAndUpdate(tokenData._id, {
-        accessToken: credentials.access_token,
-        expiryDate: credentials.expiry_date,
-      });
-
-      oAuth2Client.setCredentials(credentials);
-    }
-
-    return google.calendar({ version: "v3", auth: oAuth2Client });
-  } catch (err) {
-    console.log(err);
-    return res.status(500).send({ error: "Failed to get Google client" });
+    oAuth2Client.setCredentials(credentials);
   }
+
+  return google.calendar({ version: "v3", auth: oAuth2Client });
 };
 
 exports.sendMail = async (email, mlink, startTime, title, name, users) => {

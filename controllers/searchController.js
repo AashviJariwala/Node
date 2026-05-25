@@ -80,21 +80,25 @@ function isUserBusy(events, slotStart, slotEnd) {
   });
 }
 
-exports.searchByTimeslot= async (req, res, next) => {
-   try {
-      const  {uid}  = req.body;
-      // for (let id of uid) {
-      // console.log(id);
-      // }
-      
+exports.searchByTimeslot = async (req, res, next) => {
+  try {
+    const { uid } = req.body;
+
     const slots = generateHourlySlots(Date.now());
 
     const freeSlots = [];
 
+    const currentTime = new Date();
+
     for (let slot of slots) {
+
+      if (new Date(slot.start) <= currentTime) {
+        continue;
+      }
+
       let allFree = true;
 
-       for (let id of uid) {
+      for (let id of uid) {
         const events = await calendarEvents.find({
           uid: id,
         });
@@ -109,11 +113,16 @@ exports.searchByTimeslot= async (req, res, next) => {
         freeSlots.push(slot.label);
       }
     }
-    return res.status(200).send({ success: true, data: freeSlots });
-    } catch (err) {
-        console.error(err.message);
-        return next(new ApiError(err));
-    }
+
+    return res.status(200).send({
+      success: true,
+      data: freeSlots,
+    });
+
+  } catch (err) {
+    console.error(err.message);
+    return next(new ApiError(err));
+  }
 };
 
 
