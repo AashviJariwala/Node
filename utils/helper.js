@@ -5,7 +5,6 @@ const admin = require("../ADMIN/models/admin");
 const user = require("../models/user");
 const googleTokens = require("../models/googleTokens");
 const nodemailer = require("nodemailer");
-const googleTokens=require("../models/googleTokens");
 
 const transporter = nodemailer.createTransport({
   service: "gmail",
