@@ -4,6 +4,7 @@ const { google } = require("googleapis");
 const admin = require("../ADMIN/models/admin");
 const user = require("../models/user");
 const nodemailer = require("nodemailer");
+const googleTokens=require("../models/googleTokens");
 
 const transporter = nodemailer.createTransport({
   service: "gmail",
@@ -14,7 +15,7 @@ const transporter = nodemailer.createTransport({
 });
 
 exports.generateToken = (id, email, type) => {
-  const token = jwt.sign({ id, email, type }, process.env.JWT_SECRET);
+  const token = jwt.sign({ id, email, type }, process.env.JWT_SECRET,{expiresIn:"2h"});
   return token;
 };
 
