@@ -5,29 +5,25 @@ const roleDept = require("../models/roleDept");
 const ApiError = require("../utils/ApiError");
 const axios = require("axios");
 const FormData = require("form-data");
-const fs = require("fs");
-const path = require("path");
 
 exports.idCardVerification = async (req, res, next) => {
   try {
     if (!req.file) {
-      return res
-        .status(400)
-        .json({ success: false, msg: "No file uploaded" });
+      return res.status(400).json({ success: false, msg: "No file uploaded" });
     }
 
-    const filePath = req.file.path;
-
     const form = new FormData();
-    form.append("file", fs.createReadStream(filePath));
+    form.append("file", req.file.buffer, {
+      filename: req.file.originalname,
+      contentType: req.file.mimetype,
+    });
 
-    // Call FastAPI
     const response = await axios.post(
-      "http://127.0.0.1:8000/extract-text",
+      `${process.env.PYTHON_OCR_URL || "http://127.0.0.1:8000"}/extract-text`,
       form,
       {
         headers: form.getHeaders(),
-      }
+      },
     );
     console.log(response);
     var arr1 = response.data.text.split("\n");
@@ -72,12 +68,12 @@ exports.idCardVerification = async (req, res, next) => {
       {
         $set: {
           rdid: findRoleDept._id,
-          idCard: req.file.filename,
+          idCard: req.file.originalname,
           isVerified: 1,
-          idCardUploaded:1
+          idCardUploaded: 1,
         },
       },
-      { new: true }
+      { new: true },
     );
     console.log(editUser);
 
