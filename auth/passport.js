@@ -62,17 +62,4 @@ passport.use(
   )
 );
 
-passport.serializeUser((data, done) => {
-  done(null, data);
-});
-
-passport.deserializeUser(async (data, done) => {
-  try {
-    let user1 = await user.findById(data.user._id);
-    done(null, { user: user1, isNewUser: data.isNewUser });
-  } catch (err) {
-    done(err, null);
-  }
-});
-
 module.exports = passport;

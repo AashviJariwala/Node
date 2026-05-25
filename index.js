@@ -2,7 +2,6 @@ const express = require("express");
 const cors = require("cors");
 const morgan = require("morgan");
 const { errorHandler } = require("./middleware/errorHandler");
-const session = require("express-session");
 require("dotenv").config();
 require("./config/myconn");
 const { sendReminders } = require("./jobs/sendReminders");
@@ -21,19 +20,12 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.use(
-  session({
-    secret: process.env.SESSION_SECRET,
-    saveUninitialized: false,
-    resave: false,
-  })
-);
+
 app.use("/public", express.static("public"));
 app.use(cors());
 app.use(morgan("dev"));
 
 app.use(passport.initialize());
-app.use(passport.session());
 
 app.use("/admin", adminRoutes);
 app.use("/login", loginRoutes);
