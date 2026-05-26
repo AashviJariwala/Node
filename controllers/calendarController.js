@@ -7,41 +7,47 @@ const meeting = require("../models/meeting");
 
 exports.syncFromGoogle = async (req, res, next) => {
   try {
-    let s1;
-    let end1;
-    let d1 = Date.now();
-    let status;
-    let rt;
-    let startTime = [];
+    const d1 = Date.now();
+    const userId = req.user._id;
+
     const calendar = await getGoogleClient(req, res, null);
 
-    const googleEvents = await calendar.events.list({
-      calendarId: "primary",
-      maxResults: 2500, // increase the limit
-      singleEvents: true, // expand recurring events
-      orderBy: "startTime",
-    });
+    // 1. Fetch all data in PARALLEL upfront — no more sequential awaits
+    const [googleEventsRes, existingEvents, collabParticipants] = await Promise.all([
+      calendar.events.list({
+        calendarId: "primary",
+        maxResults: 2500,
+        singleEvents: true,
+        orderBy: "startTime",
+      }),
+      calendarEvents.find({ uid: userId }).lean(),
+      collaborativeEvents.find({ uid: userId }).lean(),
+    ]);
 
-    const ids = [];
+    const googleItems = googleEventsRes.data.items;
 
-    for (let e1 of googleEvents.data.items) {
-      const isCollabPartcipant = await collaborativeEvents.findOne({
-        uid: req.user._id,
-        hostGoogleEventID: e1.id,
-      });
-      if (isCollabPartcipant) {
-        console.log("event already existss!!!!!!");
-        continue;
-      }
-      const existingEvent = await calendarEvents.findOne({
-        googleEventID: e1.id,
-        uid: req.user._id,
-      });
+    // 2. Build lookup maps — O(1) access instead of per-iteration DB calls
+    const existingEventMap = new Map(
+      existingEvents.map((e) => [e.googleEventID, e])
+    );
+    const collabHostIds = new Set(
+      collabParticipants.map((e) => e.hostGoogleEventID?.toString())
+    );
 
+    // 3. Categorize events in a single pass — no DB calls here
+    const toInsert = [];
+    const toUpdate = [];
+    const googleEventIds = new Set();
+
+    for (const e1 of googleItems) {
+      if (collabHostIds.has(e1.id)) continue; // skip collab events
+
+      googleEventIds.add(e1.id);
+
+      let s1, end1;
       if ("date" in e1.start) {
         s1 = new Date(e1.start.date);
-
-        let tmpEnd = new Date(e1.end.date);
+        const tmpEnd = new Date(e1.end.date);
         tmpEnd.setDate(tmpEnd.getDate() - 1);
         end1 = tmpEnd;
       } else {
@@ -49,128 +55,102 @@ exports.syncFromGoogle = async (req, res, next) => {
         end1 = new Date(e1.end.dateTime);
       }
 
-      if (!existingEvent) {
-        const newEvent = await calendarEvents.create({
-          title: e1.summary,
-          description: e1.description,
-          start: s1,
-          end: end1,
-          uid: req.user._id,
-          googleEventID: e1.id,
-          mlink: e1.hangoutLink,
-          visibility: req.user.visibility,
-          created: e1.created,
-          updated: e1.updated,
-        });
+      const eventPayload = {
+        title: e1.summary,
+        description: e1.description,
+        start: s1,
+        end: end1,
+        uid: userId,
+        googleEventID: e1.id,
+        mlink: e1.hangoutLink,
+        visibility: req.user.visibility,
+        created: e1.created,
+        updated: e1.updated,
+      };
 
-        if (newEvent.mlink) {
-          status = new Date(end1) < d1 ? "completed" : "scheduled";
-          rt = new Date(s1.getTime() - 10 * 60 * 1000);
-          const editReminTime = await calendarEvents.findOneAndUpdate(
-            { _id: newEvent._id },
-            {
-              $set: {
-                reminderTime: rt,
-              },
-            },
-            { new: true }
-          );
-          const newMeeting = await meeting.create({
-            eid: newEvent._id,
-            status,
-            created: e1.created,
-            updated: e1.updated,
-          });
-        }
+      const existing = existingEventMap.get(e1.id);
+
+      if (!existing) {
+        toInsert.push({ googleData: e1, payload: eventPayload, s1, end1 });
       } else {
-        const c1 = new Date(e1.created);
-        const format1 = c1.toISOString().split(".")[0];
-        const u1 = new Date(e1.updated);
-        const format2 = u1.toISOString().split(".")[0];
-        if (format1.match(format2));
-        else {
-          const editedEvents = await calendarEvents.findOneAndUpdate(
-            { _id: existingEvent._id },
-            {
-              $set: {
-                title: e1.summary,
-                description: e1.description,
-                start: s1,
-                end: end1,
-                uid: req.user._id,
-                googleEventID: e1.id,
-                mlink: e1.hangoutLink,
-                visibility: req.user.visibility,
-                created: e1.created,
-                updated: e1.updated,
-              },
-            },
-            { new: true }
-          );
-
-          if (editedEvents.mlink) {
-            status = new Date(end1) < d1 ? "completed" : "scheduled";
-            rt = new Date(s1.getTime() - 10 * 60 * 1000);
-            const editReminTime = await calendarEvents.findOneAndUpdate(
-              { _id: editedEvents._id },
-              {
-                $set: {
-                  reminderTime: rt,
-                },
-              },
-              { new: true }
-            );
-            const newMeeting = await meeting.findOneAndUpdate(
-              {
-                eid: editedEvents._id,
-              },
-              {
-                $set: {
-                  status,
-                  created: e1.created,
-                  updated: e1.updated,
-                },
-              }
-            );
-          }
+        // Only update if actually changed
+        const c1 = new Date(e1.created).toISOString().split(".")[0];
+        const u1 = new Date(e1.updated).toISOString().split(".")[0];
+        if (c1 !== u1) {
+          toUpdate.push({ googleData: e1, payload: eventPayload, existing, s1, end1 });
         }
       }
     }
 
-    const events1 = await calendarEvents.find({ uid: req.user._id });
-    const googleEventIds = new Set(googleEvents.data.items.map((e) => e.id));
-
-    for (let e2 of events1) {
-      if (e2.googleEventID && !googleEventIds.has(e2.googleEventID)) {
-        await meeting.findOneAndDelete({ eid: e2._id });
-        await collaborativeEvents.findOneAndDelete({ eid: e2._id });
-        await calendarEvents.findOneAndDelete({ _id: e2._id });
-      }
-    }
-    const googleEvents1 = await calendarEvents
-      .find({ uid: req.user._id })
-      .lean();
-    const eventData = await Promise.all(
-      googleEvents1.map(async (raw) => {
-        return {
-          ...raw,
-          dateTime: formatToISTRange(raw.start, raw.end),
-        };
+    // 4. Batch insert new events
+    const insertedEvents = await Promise.all(
+      toInsert.map(async ({ googleData, payload, s1, end1 }) => {
+        const newEvent = await calendarEvents.create(payload);
+        if (newEvent.mlink) {
+          const status = new Date(end1) < d1 ? "completed" : "scheduled";
+          const rt = new Date(s1.getTime() - 10 * 60 * 1000);
+          await Promise.all([
+            calendarEvents.findByIdAndUpdate(newEvent._id, { $set: { reminderTime: rt } }),
+            meeting.create({
+              eid: newEvent._id,
+              status,
+              created: googleData.created,
+              updated: googleData.updated,
+            }),
+          ]);
+        }
+        return newEvent;
       })
     );
-    const collabRec = await collaborativeEvents
-      .find({
-        uid: req.user._id,
-      })
-      .populate("eid");
 
-    if (collabRec) {
-      const collabEvents = collabRec.map((e) => e.eid);
-      const allEvents = [...eventData, ...collabEvents];
-      return res.status(200).send({ success: true, data: allEvents });
-    } else {
-      return res.status(200).send({ success: true, data: eventData });
-    }
+    // 5. Batch update changed events
+    await Promise.all(
+      toUpdate.map(async ({ googleData, payload, existing, s1, end1 }) => {
+        const updated = await calendarEvents.findByIdAndUpdate(
+          existing._id,
+          { $set: payload },
+          { new: true }
+        );
+        if (updated.mlink) {
+          const status = new Date(end1) < d1 ? "completed" : "scheduled";
+          const rt = new Date(s1.getTime() - 10 * 60 * 1000);
+          await Promise.all([
+            calendarEvents.findByIdAndUpdate(updated._id, { $set: { reminderTime: rt } }),
+            meeting.findOneAndUpdate(
+              { eid: updated._id },
+              { $set: { status, created: googleData.created, updated: googleData.updated } }
+            ),
+          ]);
+        }
+      })
+    );
+
+    // 6. Batch delete events removed from Google
+    const toDelete = existingEvents.filter(
+      (e) => e.googleEventID && !googleEventIds.has(e.googleEventID)
+    );
+    await Promise.all(
+      toDelete.map(({ _id }) =>
+        Promise.all([
+          meeting.findOneAndDelete({ eid: _id }),
+          collaborativeEvents.findOneAndDelete({ eid: _id }),
+          calendarEvents.findOneAndDelete({ _id }),
+        ])
+      )
+    );
+
+    // 7. Build final response from in-memory data (no extra DB query)
+    const finalEvents = await calendarEvents.find({ uid: userId }).lean();
+    const eventData = finalEvents.map((raw) => ({
+      ...raw,
+      dateTime: formatToISTRange(raw.start, raw.end),
+    }));
+
+    const collabRec = await collaborativeEvents.find({ uid: userId }).populate("eid");
+    const collabEvents = collabRec?.map((e) => e.eid) ?? [];
+    const allEvents = [...eventData, ...collabEvents];
+
+    return res.status(200).send({ success: true, data: allEvents });
   } catch (err) {
     console.error(err);
     return next(new ApiError(err));
