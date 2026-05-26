@@ -4,6 +4,7 @@ const morgan = require("morgan");
 const { errorHandler } = require("./middleware/errorHandler");
 require("dotenv").config();
 require("./config/myconn");
+const cloudinary=require("cloudinary");
 const { sendReminders } = require("./jobs/sendReminders");
 const adminRoutes = require("./ADMIN/routes/adminRoutes");
 const loginRoutes = require("./routes/loginRoutes");
@@ -48,6 +49,12 @@ app.use((err, req, res, next) => {
     );
   }
   next(err);
+});
+
+cloudinary.config({
+  cloud_name:process.env.CLOUD_NAME,
+  api_key: process.env.API_KEY,
+  api_secret:process.env.API_SECRET,
 });
 
 app.use(errorHandler);

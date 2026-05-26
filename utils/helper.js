@@ -5,6 +5,8 @@ const admin = require("../ADMIN/models/admin");
 const user = require("../models/user");
 const googleTokens = require("../models/googleTokens");
 const nodemailer = require("nodemailer");
+const { v4: uuidv4 } = require("uuid");
+const cloudinary = require("cloudinary");
 
 const transporter = nodemailer.createTransport({
   service: "gmail",
@@ -15,7 +17,9 @@ const transporter = nodemailer.createTransport({
 });
 
 exports.generateToken = (id, email, type) => {
-  const token = jwt.sign({ id, email, type }, process.env.JWT_SECRET,{expiresIn:"2h"});
+  const token = jwt.sign({ id, email, type }, process.env.JWT_SECRET, {
+    expiresIn: "2h",
+  });
   return token;
 };
 
@@ -170,9 +174,9 @@ exports.sendMail = async (email, mlink, startTime, title, name, users) => {
   }
 };
 
-exports.formatToISTRange = (startISO, endISO,durationMinutes = 60) => {
+exports.formatToISTRange = (startISO, endISO, durationMinutes = 60) => {
   const start = new Date(startISO);
-  const end=new Date(endISO)
+  const end = new Date(endISO);
   // Convert to IST using Intl
   const optionsDate = {
     weekday: "long",
@@ -198,6 +202,31 @@ exports.formatToISTRange = (startISO, endISO,durationMinutes = 60) => {
   // End time
   const endTime = new Intl.DateTimeFormat("en-IN", optionsTime).format(end);
 
-
   return `${datePart} · ${startTime} - ${endTime} (IST)`;
+};
+
+exports.uploadOnCloud = async (file) => {
+  const uniqueFileName = uuidv4();
+  let folderName = "";
+  let dataURI;
+
+  folderName = "CompanyUserIDCard";
+  const b64 = Buffer.from(file.buffer).toString("base64");
+  dataURI = "data:" + file.mimetype + ";base64," + b64;
+
+  const result = await cloudinary.v2.uploader.upload(dataURI, {
+    folder: folderName,
+    public_id: uniqueFileName,
+    use_filename: true,
+    unique_filename: true,
+    overwrite: false,
+    resource_type: "auto",
+  });
+
+  console.log("helper")
+  console.log(result.url)
+
+  return {
+    url: result.url,
+  }
 };

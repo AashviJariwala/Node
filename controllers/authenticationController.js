@@ -5,6 +5,7 @@ const roleDept = require("../models/roleDept");
 const ApiError = require("../utils/ApiError");
 const axios = require("axios");
 const FormData = require("form-data");
+const { uploadOnCloud } = require("../utils/helper");
 
 exports.idCardVerification = async (req, res, next) => {
   try {
@@ -23,9 +24,9 @@ exports.idCardVerification = async (req, res, next) => {
       form,
       {
         headers: form.getHeaders(),
-      },
+      }
     );
-    console.log(response);
+    // console.log(response);
     var arr1 = response.data.text.split("\n");
     var arr2 = [];
     var flag = false;
@@ -53,8 +54,6 @@ exports.idCardVerification = async (req, res, next) => {
         var dept = i.value;
       else var roles = i.value;
     }
-    console.log(roles);
-    console.log(dept);
 
     const findRole = await role.findOne({ name: roles.toLowerCase() });
     const findDept = await department.findOne({ name: dept.toLowerCase() });
@@ -63,21 +62,24 @@ exports.idCardVerification = async (req, res, next) => {
       did: findDept._id,
     });
 
-    const editUser = await user.findOneAndUpdate(
-      { _id: req.user._id },
-      {
-        $set: {
-          rdid: findRoleDept._id,
-          idCard: req.file.originalname,
-          isVerified: 1,
-          idCardUploaded: 1,
+    if (findRoleDept) {
+      const cloudURL = await uploadOnCloud(req.file);
+      const editUser = await user.findOneAndUpdate(
+        { _id: req.user._id },
+        {
+          $set: {
+            rdid: findRoleDept._id,
+            idCard: cloudURL.url,
+            isVerified: 1,
+            idCardUploaded: 1,
+          },
         },
-      },
-      { new: true },
-    );
-    console.log(editUser);
-
-    return res.status(200).send({ success: true, data: editUser });
+        { new: true }
+      );
+      // console.log(editUser);
+      return res.status(200).send({ success: true, data: editUser });
+    } else
+      return res.status(200).send({ success: true, msg: "Invalid id card" });
   } catch (err) {
     console.error("FastAPI Error:", err.message);
     return next(new ApiError(err));
