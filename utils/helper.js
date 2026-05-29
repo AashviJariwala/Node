@@ -10,18 +10,6 @@ const cloudinary = require("cloudinary");
 const Brevo = require("@getbrevo/brevo");
 const axios = require("axios");
 
-// const brevoClient = Brevo.ApiClient.instance;
-// brevoClient.authentications["api-key"].apiKey= process.env.BREVO_API_KEY;
-
-// const transactionalApi = new Brevo.TransactionalEmailsApi();
-// const transporter = nodemailer.createTransport({
-//   service: "gmail",
-//   auth: {
-//     user: process.env.EMAIL_ID,
-//     pass: process.env.EMAIL_PASSWORD,
-//   },
-// });
-
 exports.generateToken = (id, email, type) => {
   const token = jwt.sign({ id, email, type }, process.env.JWT_SECRET, {
     expiresIn: "2h",
@@ -107,9 +95,6 @@ exports.getGoogleClient = async (req, res, id) => {
 };
 
 exports.sendMail = async (email, mlink, startTime, title, name, users) => {
-  console.log("mail");
-  console.log(email);
-  console.log(users);
 
   const toList = Array.isArray(users)
     ? users.map((u) => ({ email: u }))
@@ -118,7 +103,7 @@ exports.sendMail = async (email, mlink, startTime, title, name, users) => {
   try {
     const result = await axios.post(
       "https://api.brevo.com/v3/smtp/email",
-      {
+      { 
         sender: { name: "Meeting Scheduler", email: process.env.EMAIL_ID },
         to: toList,
         subject: "Meeting Notification",
