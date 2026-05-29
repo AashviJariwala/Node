@@ -7,9 +7,12 @@ const googleTokens = require("../models/googleTokens");
 const nodemailer = require("nodemailer");
 const { v4: uuidv4 } = require("uuid");
 const cloudinary = require("cloudinary");
-const { Resend } = require("resend");
-const resend = new Resend(process.env.RESEND_API_KEY);
+const Brevo = require("@getbrevo/brevo");
 
+const brevoClient = Brevo.ApiClient.instance;
+brevoClient.authentications["api-key"].apiKey= process.env.BREVO_API_KEY;
+
+const transactionalApi = new Brevo.TransactionalEmailsApi();
 // const transporter = nodemailer.createTransport({
 //   service: "gmail",
 //   auth: {
@@ -107,8 +110,12 @@ exports.sendMail = async (email, mlink, startTime, title, name, users) => {
     console.log("mail");
     console.log(email);
     console.log(users);
-    const mailOptions = await resend.emails.send({
-      from: "Synchro <onboarding@resend.dev>",
+    const toList = Array.isArray(users)
+    ? users.map((u) => ({ email: u }))
+    : [{ email: users }];
+
+    const mailOptions = await transactionalApi.sendTransacEmail({
+      sender: { name: "Your App", email: process.env.EMAIL_ID },
       to: users,
       subject: "Meeting Notification",
       html: `
