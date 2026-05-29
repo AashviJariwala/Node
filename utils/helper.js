@@ -101,6 +101,9 @@ exports.getGoogleClient = async (req, res, id) => {
 };
 
 exports.sendMail = async (email, mlink, startTime, title, name, users) => {
+  console.log("mail")
+  console.log(email);
+  console.log(users);
   const mailOptions = {
     to: users,
     subject: "Meeting Notification",
