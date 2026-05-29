@@ -1,45 +1,19 @@
-console.log("=== APP STARTING ===");
 const express = require("express");
-console.log("express ok");
 const cors = require("cors");
-console.log("cors ok");
 const morgan = require("morgan");
-console.log("morgan ok");
 const { errorHandler } = require("./middleware/errorHandler");
-console.log("error ok");
 require("dotenv").config();
-console.log("env ok");
 require("./config/myconn");
-console.log("conn ok");
 const cloudinary=require("cloudinary");
-console.log("cloudinary ok");
-
 const { sendReminders } = require("./jobs/sendReminders");
-console.log("sendReminders ok");
-
 const adminRoutes = require("./ADMIN/routes/adminRoutes");
-console.log("adminRoutes ok");
-
 const loginRoutes = require("./routes/loginRoutes");
-console.log("loginRoutes ok");
-
 const authenticationRoutes = require("./routes/authenticationRoutes");
-console.log("authenticationRoutes ok");
-
 const calendarRoutes = require("./routes/calendarRoutes");
-console.log("calendarRoutes ok");
-
 const searchRoutes = require("./routes/searchRoutes");
-console.log("searchRoutes ok");
-;
 const userRoutes = require("./routes/userRoutes");
-console.log("userRoutes ok");
-
 const meetingRoutes = require("./routes/meetingRoutes");
-console.log("meetingRoutes ok");
-
 const passport = require("./auth/passport");
-console.log("passport ok");
 
 
 const app = express();

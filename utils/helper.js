@@ -7,14 +7,16 @@ const googleTokens = require("../models/googleTokens");
 const nodemailer = require("nodemailer");
 const { v4: uuidv4 } = require("uuid");
 const cloudinary = require("cloudinary");
+const { Resend } = require("resend");
+const resend = new Resend(process.env.RESEND_API_KEY);
 
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.EMAIL_ID,
-    pass: process.env.EMAIL_PASSWORD,
-  },
-});
+// const transporter = nodemailer.createTransport({
+//   service: "gmail",
+//   auth: {
+//     user: process.env.EMAIL_ID,
+//     pass: process.env.EMAIL_PASSWORD,
+//   },
+// });
 
 exports.generateToken = (id, email, type) => {
   const token = jwt.sign({ id, email, type }, process.env.JWT_SECRET, {
@@ -101,14 +103,15 @@ exports.getGoogleClient = async (req, res, id) => {
 };
 
 exports.sendMail = async (email, mlink, startTime, title, name, users) => {
-  console.log("mail");
-  console.log(email);
-  console.log(users);
-  const mailOptions = {
-    from: process.env.EMAIL_ID,
-    to: users,
-    subject: "Meeting Notification",
-    html: `
+  try {
+    console.log("mail");
+    console.log(email);
+    console.log(users);
+    const mailOptions = await resend.emails.send({
+      from: "Synchro <onboarding@resend.dev>",
+      to: users,
+      subject: "Meeting Notification",
+      html: `
     <div style="font-family: Arial, sans-serif; background:#f5f5f5; padding:20px;">
   
     <div style="max-width:600px; margin:auto; background:#ffffff; border-radius:8px; overflow:hidden; border:1px solid #ddd;">
@@ -169,10 +172,9 @@ exports.sendMail = async (email, mlink, startTime, title, name, users) => {
   
   </div>
         `,
-  };
-  try {
-    const sendMail = await transporter.sendMail(mailOptions);
-    return sendMail;
+    });
+    console.log(mailOptions);
+    return mailOptions;
   } catch (err) {
     console.error("MAIL ERROR CODE:", err.code);
     console.error("MAIL ERROR MESSAGE:", err.message);
