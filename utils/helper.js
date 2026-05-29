@@ -8,9 +8,10 @@ const nodemailer = require("nodemailer");
 const { v4: uuidv4 } = require("uuid");
 const cloudinary = require("cloudinary");
 const Brevo = require("@getbrevo/brevo");
+const axios = require("axios");
 
-const brevoClient = Brevo.ApiClient.instance;
-brevoClient.authentications["api-key"].apiKey= process.env.BREVO_API_KEY;
+// const brevoClient = Brevo.ApiClient.instance;
+// brevoClient.authentications["api-key"].apiKey= process.env.BREVO_API_KEY;
 
 const transactionalApi = new Brevo.TransactionalEmailsApi();
 // const transporter = nodemailer.createTransport({
@@ -106,86 +107,62 @@ exports.getGoogleClient = async (req, res, id) => {
 };
 
 exports.sendMail = async (email, mlink, startTime, title, name, users) => {
-  try {
-    console.log("mail");
-    console.log(email);
-    console.log(users);
-    const toList = Array.isArray(users)
+  console.log("mail");
+  console.log(email);
+  console.log(users);
+
+  const toList = Array.isArray(users)
     ? users.map((u) => ({ email: u }))
     : [{ email: users }];
 
-    const mailOptions = await transactionalApi.sendTransacEmail({
-      sender: { name: "Your App", email: process.env.EMAIL_ID },
-      to: users,
-      subject: "Meeting Notification",
-      html: `
-    <div style="font-family: Arial, sans-serif; background:#f5f5f5; padding:20px;">
-  
-    <div style="max-width:600px; margin:auto; background:#ffffff; border-radius:8px; overflow:hidden; border:1px solid #ddd;">
-      
-      <!-- Header -->
-      <div style="background:#ffffff; padding:20px;">
-        <p style="color:#1a73e8; font-size:16px; font-weight:500;">
-          You have an upcoming event
-        </p>
-      </div>
-  
-      <!-- Main Card -->
-      <div style="padding:20px; border-top:1px solid #eee;">
-        
-        <!-- Button -->
-        <div style="text-align:center; margin-bottom:20px;">
-          <a href=${mlink}
-             style="background:#1a73e8; color:#fff; padding:12px 24px; 
-                    border-radius:6px; text-decoration:none; font-weight:bold;">
-            Join with Google Meet
-          </a>
+  try {
+    const result = await axios.post(
+      "https://api.brevo.com/v3/smtp/email",
+      {
+        sender: { name: "Meeting Scheduler", email: process.env.EMAIL_ID },
+        to: toList,
+        subject: "Meeting Notification",
+        htmlContent: `
+        <div style="font-family: Arial, sans-serif; background:#f5f5f5; padding:20px;">
+          <div style="max-width:600px; margin:auto; background:#ffffff; border-radius:8px; overflow:hidden; border:1px solid #ddd;">
+            <div style="background:#ffffff; padding:20px;">
+              <p style="color:#1a73e8; font-size:16px; font-weight:500;">
+                You have an upcoming event
+              </p>
+            </div>
+            <div style="padding:20px; border-top:1px solid #eee;">
+              <div style="text-align:center; margin-bottom:20px;">
+                <a href="${mlink}" style="background:#1a73e8; color:#fff; padding:12px 24px; border-radius:6px; text-decoration:none; font-weight:bold;">
+                  Join with Google Meet
+                </a>
+              </div>
+              <p style="color:#555; font-size:14px; margin-bottom:5px;"><strong>Meeting link</strong></p>
+              <p style="color:#1a73e8; font-size:14px;">${mlink}</p>
+              <h2 style="margin:15px 0 10px 0;">${title}</h2>
+              <p style="color:#555;">${startTime}</p>
+              <p style="margin-top:20px;"><strong>Organizer</strong></p>
+              <p style="color:#555;">${name} <br/> ${email}</p>
+            </div>
+          </div>
+          <div style="max-width:600px; margin:auto; padding:15px; font-size:12px; color:#777;">
+            <p>Invitation from Google Calendar</p>
+            <p>You are receiving this email because you are subscribed to calendar notifications.</p>
+          </div>
         </div>
-  
-        <!-- Meeting Link -->
-        <p style="color:#555; font-size:14px; margin-bottom:5px;">
-          <strong>Meeting link</strong>
-        </p>
-        <p style="color:#1a73e8; font-size:14px;">
-          ${mlink}
-        </p>
-  
-        <!-- Title -->
-        <h2 style="margin:15px 0 10px 0;">${title}</h2>
-  
-        <!-- Date -->
-        <p style="color:#555;">
-          ${startTime}
-        </p>
-  
-        <!-- Organizer -->
-        <p style="margin-top:20px;"><strong>Organizer</strong></p>
-        <p style="color:#555;">
-          ${name} <br/>
-          ${email}
-        </p>
-  
-      </div>
-  
-    </div>
-  
-    <!-- Footer -->
-    <div style="max-width:600px; margin:auto; padding:15px; font-size:12px; color:#777;">
-      <p>Invitation from Google Calendar</p>
-      <p>
-        You are receiving this email because you are subscribed to calendar notifications.
-      </p>
-    </div>
-  
-  </div>
         `,
-    });
-    console.log(mailOptions);
-    return mailOptions;
+      },
+      {
+        headers: {
+          "api-key": process.env.BREVO_API_KEY,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    console.log("Mail sent successfully:", result.data);
+    return result.data;
   } catch (err) {
-    console.error("MAIL ERROR CODE:", err.code);
-    console.error("MAIL ERROR MESSAGE:", err.message);
-    console.error("MAIL ERROR RESPONSE:", err.response);
+    console.error("MAIL ERROR:", err.response?.data || err.message);
     return err;
   }
 };
