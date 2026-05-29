@@ -105,7 +105,7 @@ exports.sendMail = async (email, mlink, startTime, title, name, users) => {
   console.log(email);
   console.log(users);
   const mailOptions = {
-    from: `Synchro ${process.env.EMAIL_ID}`,
+    from: process.env.EMAIL_ID,
     to: users,
     subject: "Meeting Notification",
     html: `
@@ -177,7 +177,6 @@ exports.sendMail = async (email, mlink, startTime, title, name, users) => {
     console.error("MAIL ERROR CODE:", err.code);
     console.error("MAIL ERROR MESSAGE:", err.message);
     console.error("MAIL ERROR RESPONSE:", err.response);
-    return err;
     return err;
   }
 };
