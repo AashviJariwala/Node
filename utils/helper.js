@@ -174,6 +174,10 @@ exports.sendMail = async (email, mlink, startTime, title, name, users) => {
     const sendMail = await transporter.sendMail(mailOptions);
     return sendMail;
   } catch (err) {
+    console.error("MAIL ERROR CODE:", err.code);
+    console.error("MAIL ERROR MESSAGE:", err.message);
+    console.error("MAIL ERROR RESPONSE:", err.response);
+    return err;
     return err;
   }
 };
