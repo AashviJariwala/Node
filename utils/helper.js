@@ -13,7 +13,7 @@ const axios = require("axios");
 // const brevoClient = Brevo.ApiClient.instance;
 // brevoClient.authentications["api-key"].apiKey= process.env.BREVO_API_KEY;
 
-const transactionalApi = new Brevo.TransactionalEmailsApi();
+// const transactionalApi = new Brevo.TransactionalEmailsApi();
 // const transporter = nodemailer.createTransport({
 //   service: "gmail",
 //   auth: {
