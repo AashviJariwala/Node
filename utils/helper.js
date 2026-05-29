@@ -18,14 +18,15 @@ const cloudinary = require("cloudinary");
 
 const transporter = nodemailer.createTransport({
   host: "smtp.gmail.com",
-  port: 465,
-  secure: true,
+  port: 587,
+  secure: false, // TLS, not SSL
+  requireTLS: true,
+  family: 4, // 👈 force IPv4
   auth: {
     user: process.env.EMAIL_ID,
     pass: process.env.EMAIL_PASSWORD,
   },
 });
-
 // Add this to catch issues at startup
 transporter.verify((error, success) => {
   if (error) console.error("Mail transporter error:", error);
