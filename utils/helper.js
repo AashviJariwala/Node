@@ -8,14 +8,29 @@ const nodemailer = require("nodemailer");
 const { v4: uuidv4 } = require("uuid");
 const cloudinary = require("cloudinary");
 
+// const transporter = nodemailer.createTransport({
+//   service: "gmail",
+//   auth: {
+//     user: process.env.EMAIL_ID,
+//     pass: process.env.EMAIL_PASSWORD,
+//   },
+// });
+
 const transporter = nodemailer.createTransport({
-  service: "gmail",
+  host: "smtp.gmail.com",
+  port: 465,
+  secure: true,
   auth: {
     user: process.env.EMAIL_ID,
     pass: process.env.EMAIL_PASSWORD,
   },
 });
 
+// Add this to catch issues at startup
+transporter.verify((error, success) => {
+  if (error) console.error("Mail transporter error:", error);
+  else console.log("Mail transporter ready ✓");
+});
 exports.generateToken = (id, email, type) => {
   const token = jwt.sign({ id, email, type }, process.env.JWT_SECRET, {
     expiresIn: "2h",
