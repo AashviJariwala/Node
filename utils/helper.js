@@ -101,10 +101,11 @@ exports.getGoogleClient = async (req, res, id) => {
 };
 
 exports.sendMail = async (email, mlink, startTime, title, name, users) => {
-  console.log("mail")
+  console.log("mail");
   console.log(email);
   console.log(users);
   const mailOptions = {
+    from: `Synchro ${process.env.EMAIL_ID}`,
     to: users,
     subject: "Meeting Notification",
     html: `
@@ -226,10 +227,10 @@ exports.uploadOnCloud = async (file) => {
     resource_type: "auto",
   });
 
-  console.log("helper")
-  console.log(result.url)
+  console.log("helper");
+  console.log(result.url);
 
   return {
     url: result.url,
-  }
+  };
 };
