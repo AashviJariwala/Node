@@ -105,7 +105,7 @@ exports.sendMail = async (email, mlink, startTime, title, name, users) => {
   console.log(email);
   console.log(users);
   const mailOptions = {
-    // from: `Synchro ${process.env.EMAIL_ID}`,
+    from: `Synchro ${process.env.EMAIL_ID}`,
     to: users,
     subject: "Meeting Notification",
     html: `
