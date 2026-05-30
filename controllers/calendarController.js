@@ -7,12 +7,11 @@ const meeting = require("../models/meeting");
 
 exports.syncFromGoogle = async (req, res, next) => {
   try {
-    const d1 = Date.now();
+    const now = new Date();
     const userId = req.user._id;
 
     const calendar = await getGoogleClient(req, res, null);
 
-    // 1. Fetch all data in PARALLEL upfront — no more sequential awaits
     const [googleEventsRes, existingEvents, collabParticipants] = await Promise.all([
       calendar.events.list({
         calendarId: "primary",
@@ -26,7 +25,6 @@ exports.syncFromGoogle = async (req, res, next) => {
 
     const googleItems = googleEventsRes.data.items;
 
-    // 2. Build lookup maps — O(1) access instead of per-iteration DB calls
     const existingEventMap = new Map(
       existingEvents.map((e) => [e.googleEventID, e])
     );
@@ -34,24 +32,24 @@ exports.syncFromGoogle = async (req, res, next) => {
       collabParticipants.map((e) => e.hostGoogleEventID?.toString())
     );
 
-    // 3. Categorize events in a single pass — no DB calls here
     const toInsert = [];
     const toUpdate = [];
     const googleEventIds = new Set();
 
     for (const e1 of googleItems) {
-      if (collabHostIds.has(e1.id)) continue; // skip collab events
+      if (collabHostIds.has(e1.id)) continue;
 
       googleEventIds.add(e1.id);
 
       let s1, end1;
       if ("date" in e1.start) {
-        s1 = new Date(e1.start.date);
-        const tmpEnd = new Date(e1.end.date);
+        s1 = toIST(e1.start.date);
+        const tmpEnd = toIST(e1.end.date);
         tmpEnd.setDate(tmpEnd.getDate() - 1);
+        tmpEnd.setHours(23, 59, 59, 999); 
         end1 = tmpEnd;
       } else {
-        s1 = new Date(e1.start.dateTime);
+        s1 = new Date(e1.start.dateTime); 
         end1 = new Date(e1.end.dateTime);
       }
 
@@ -73,7 +71,6 @@ exports.syncFromGoogle = async (req, res, next) => {
       if (!existing) {
         toInsert.push({ googleData: e1, payload: eventPayload, s1, end1 });
       } else {
-        // Only update if actually changed
         const c1 = new Date(e1.created).toISOString().split(".")[0];
         const u1 = new Date(e1.updated).toISOString().split(".")[0];
         if (c1 !== u1) {
@@ -82,12 +79,11 @@ exports.syncFromGoogle = async (req, res, next) => {
       }
     }
 
-    // 4. Batch insert new events
     const insertedEvents = await Promise.all(
       toInsert.map(async ({ googleData, payload, s1, end1 }) => {
         const newEvent = await calendarEvents.create(payload);
         if (newEvent.mlink) {
-          const status = new Date(end1) < d1 ? "completed" : "scheduled";
+          const status = end1 < now ? "completed" : "scheduled";
           const rt = new Date(s1.getTime() - 10 * 60 * 1000);
           await Promise.all([
             calendarEvents.findByIdAndUpdate(newEvent._id, { $set: { reminderTime: rt } }),
@@ -103,7 +99,6 @@ exports.syncFromGoogle = async (req, res, next) => {
       })
     );
 
-    // 5. Batch update changed events
     await Promise.all(
       toUpdate.map(async ({ googleData, payload, existing, s1, end1 }) => {
         const updated = await calendarEvents.findByIdAndUpdate(
@@ -112,7 +107,7 @@ exports.syncFromGoogle = async (req, res, next) => {
           { new: true }
         );
         if (updated.mlink) {
-          const status = new Date(end1) < d1 ? "completed" : "scheduled";
+          const status = end1 < now ? "completed" : "scheduled";
           const rt = new Date(s1.getTime() - 10 * 60 * 1000);
           await Promise.all([
             calendarEvents.findByIdAndUpdate(updated._id, { $set: { reminderTime: rt } }),
@@ -125,7 +120,6 @@ exports.syncFromGoogle = async (req, res, next) => {
       })
     );
 
-    // 6. Batch delete events removed from Google
     const toDelete = existingEvents.filter(
       (e) => e.googleEventID && !googleEventIds.has(e.googleEventID)
     );
@@ -139,7 +133,6 @@ exports.syncFromGoogle = async (req, res, next) => {
       )
     );
 
-    // 7. Build final response from in-memory data (no extra DB query)
     const finalEvents = await calendarEvents.find({ uid: userId }).lean();
     const eventData = finalEvents.map((raw) => ({
       ...raw,
@@ -161,6 +154,7 @@ exports.createEvent = async (req, res, next) => {
   try {
     const { title, date, start, end, description } = req.body;
     const calendar = await getGoogleClient(req, res, null);
+
     const startDate = `${date}T${start}:00+05:30`;
     const endDate = `${date}T${end}:00+05:30`;
     const event = {
@@ -175,18 +169,19 @@ exports.createEvent = async (req, res, next) => {
         timeZone: "Asia/Kolkata",
       },
     };
+   
     const eventAdded = await calendar.events.insert({
       calendarId: "primary",
       resource: event,
     });
-
+  
     const payload = {
       title,
       description,
-      start: startDate,
-      end: endDate,
+      start: new Date(startDate),
+      end: new Date(endDate), 
       uid: req.user._id,
-      googleEventID: eventAdded.data.id, // Is this undefined?
+      googleEventID: eventAdded.data.id, 
       visibility: req.user.visibility,
       created: eventAdded.data.created,
       updated: eventAdded.data.updated,
@@ -281,13 +276,13 @@ exports.editEvent = async (req, res, next) => {
       {
         title,
         description,
-        start: startDate,
-        end: endDate,
+        start: new Date(startDate), 
+        end: new Date(endDate),    
         uid: req.user._id,
         googleEventID: req.params.googleId,
         visibility: req.user.visibility,
-        created: eventUpdated.created,
-        updated: eventUpdated.updated,
+        created: eventUpdated.data.created,
+        updated: eventUpdated.data.updated,
       },
       { new: true }
     );

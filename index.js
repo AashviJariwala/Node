@@ -6,6 +6,7 @@ require("dotenv").config();
 require("./config/myconn");
 const cloudinary=require("cloudinary");
 const { sendReminders } = require("./jobs/sendReminders");
+const { updateMeetingStatus } = require("./jobs/updateMeetingStatus");
 const adminRoutes = require("./ADMIN/routes/adminRoutes");
 const loginRoutes = require("./routes/loginRoutes");
 const authenticationRoutes = require("./routes/authenticationRoutes");
@@ -37,6 +38,7 @@ app.use("/user", userRoutes);
 app.use("/meeting", meetingRoutes);
 
 sendReminders();
+updateMeetingStatus();
 
 app.use((err, req, res, next) => {
   if (
