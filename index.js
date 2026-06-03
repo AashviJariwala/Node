@@ -60,5 +60,8 @@ cloudinary.config({
 });
 
 app.use(errorHandler);
+app.get("/health", (req, res) => {
+  res.status(200).json({ status: "ok" });
+});
 
 app.listen(process.env.PORT || 3000, () => console.log("Listening on 3000"));
