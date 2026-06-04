@@ -86,80 +86,46 @@ function isUserBusy(events, slotStart, slotEnd) {
 exports.searchByTimeslot = async (req, res, next) => {
   try {
     const { uid } = req.body;
-
     const slots = generateHourlySlots(Date.now());
-
     const freeSlots = [];
-    let allEvents = [];
-
     const currentTime = new Date();
 
     for (let slot of slots) {
-      if (new Date(slot.start) <= currentTime) {
-        continue;
-      }
+      if (new Date(slot.start) <= currentTime) continue;
 
       let allFree = true;
 
       for (let id of uid) {
-        const events = await calendarEvents.find({
-          uid: id,
-        });
+        let allEvents = []; // ✅ reset for each user on each slot
+
+        const events = await calendarEvents.find({ uid: id });
 
         const collabEvents = await collaborativeEvents
-          .find({
-            uid: id,
-          })
+          .find({ uid: id })
           .populate("eid")
           .lean();
 
         const meetings = await meetingUser
-          .find({
-            uid: id,
-          })
-          .populate({
-            path: "mid",
-            populate: { path: "eid" },
-          })
+          .find({ uid: id })
+          .populate({ path: "mid", populate: { path: "eid" } })
           .lean();
 
-        if (collabEvents.length !== 0) {
-          for (let e1 of collabEvents) {
-            allEvents.push(e1.eid);
-          }
-        }
+        for (let e1 of collabEvents) allEvents.push(e1.eid);
+        for (let e2 of meetings) allEvents.push(e2.mid.eid);
 
-        if (meetings.length !== 0) {
-          for (let e2 of meetings) {
-            allEvents.push(e2.mid.eid);
-          }
-        }
-
-        if (allEvents.length !== 0) {
-          if (
-            isUserBusy(allEvents, slot.start, slot.end) ||
-            isUserBusy(events, slot.start, slot.end)
-          ) {
-            allFree = false;
-            break;
-          }
-        } else {
-          if (isUserBusy(events, slot.start, slot.end)) {
-            allFree = false;
-            break;
-          }
+        if (
+          isUserBusy(allEvents, slot.start, slot.end) ||
+          isUserBusy(events, slot.start, slot.end)
+        ) {
+          allFree = false;
+          break;
         }
       }
 
-      if (allFree) {
-        freeSlots.push(slot.label);
-      }
+      if (allFree) freeSlots.push(slot.label);
     }
 
-    return res.status(200).send({
-      success: true,
-      data: freeSlots,
-    });
+    return res.status(200).send({ success: true, data: freeSlots });
   } catch (err) {
     console.error(err.message);
     return next(new ApiError(err));
