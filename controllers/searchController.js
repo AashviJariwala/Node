@@ -91,8 +91,11 @@ exports.searchByTimeslot = async (req, res, next) => {
     const currentTime = new Date();
 
     for (let slot of slots) {
-      if (new Date(slot.start) <= currentTime) continue;
-
+      if (new Date(slot.start) <= currentTime)
+      { 
+        console.log(slot);continue;
+      console.log(slot);
+      }
       let allFree = true;
 
       for (let id of uid) {
