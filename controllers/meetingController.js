@@ -33,7 +33,6 @@ exports.getAllMeetings = async (req, res, next) => {
 
 exports.sendNoti = async (req, res, next) => {
   try {
-    console.log(req.body)
     const { meetID, participantID } = req.body;
     let emails = [];
 
