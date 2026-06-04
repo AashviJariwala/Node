@@ -62,8 +62,8 @@ function generateHourlySlots(date) {
   const slots = [];
 
   const ist = new Date(
-    new Date(date).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" })
-    + "T00:00:00+05:30"
+    new Date(date).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" }) +
+      "T00:00:00+05:30"
   );
 
   for (let i = 0; i < 24; i++) {
@@ -94,11 +94,7 @@ exports.searchByTimeslot = async (req, res, next) => {
     const currentTime = new Date();
 
     for (let slot of slots) {
-      if (new Date(slot.start) <= currentTime)
-      { 
-        console.log(slot);
-        continue;
-      }
+      if (new Date(slot.start) <= currentTime) continue;
       let allFree = true;
 
       for (let id of uid) {
