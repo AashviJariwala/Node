@@ -61,14 +61,17 @@ exports.userProfile = async (req, res, next) => {
 function generateHourlySlots(date) {
   const slots = [];
 
+  const ist = new Date(
+    new Date(date).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" })
+    + "T00:00:00+05:30"
+  );
+
   for (let i = 0; i < 24; i++) {
-    const start = new Date(date);
-    start.setHours(i, 0, 0, 0);
+    const start = new Date(ist.getTime() + i * 60 * 60 * 1000);
+    const end = new Date(ist.getTime() + (i + 1) * 60 * 60 * 1000);
+    const label = `${i}:00`; // i=0 → "0:00" IST, i=19 → "19:00" IST
 
-    const end = new Date(date);
-    end.setHours(i + 1, 0, 0, 0);
-
-    slots.push({ start, end, label: `${i}:00` });
+    slots.push({ start, end, label });
   }
 
   return slots;
@@ -93,8 +96,8 @@ exports.searchByTimeslot = async (req, res, next) => {
     for (let slot of slots) {
       if (new Date(slot.start) <= currentTime)
       { 
-        console.log(slot);continue;
-      console.log(slot);
+        console.log(slot);
+        continue;
       }
       let allFree = true;
 
