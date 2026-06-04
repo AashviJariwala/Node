@@ -4,7 +4,12 @@ const ApiError = require("../utils/ApiError");
 
 exports.showAllEmployee = async (req, res, next) => {
   try {
-    const users = await user.find({_id:{$ne:req.user._id}});
+    const users = await user
+    .find(
+      { _id: { $ne: req.user._id } },
+      "name" 
+    )
+    .lean();
     return res.status(200).send({ success: true, data: users });
   } catch (err) {
     console.error(err.message);
