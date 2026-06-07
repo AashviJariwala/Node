@@ -29,7 +29,7 @@ jobs:
     env:
       CLOUD_NAME: dz7228t0b
       EMAIL_ID: aashvijariwala@gmail.com
-      GOOGLE_REDIRECT_URI: https://YOUR-CLOUD-RUN-URL/login/auth/google/callback
+      GOOGLE_REDIRECT_URI: https://syncro-805779616636.asia-south1.run.app/login/auth/google/callback
       PYTHON_OCR_URL: https://python-production-f595.up.railway.app
       REACT_URL: https://synchro-ivory.vercel.app
       API_KEY: ${{ secrets.API_KEY }}
