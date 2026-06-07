@@ -5,8 +5,6 @@ const { errorHandler } = require("./middleware/errorHandler");
 require("dotenv").config();
 require("./config/myconn");
 const cloudinary=require("cloudinary");
-const { sendReminders } = require("./jobs/sendReminders");
-const { updateMeetingStatus } = require("./jobs/updateMeetingStatus");
 const adminRoutes = require("./ADMIN/routes/adminRoutes");
 const loginRoutes = require("./routes/loginRoutes");
 const authenticationRoutes = require("./routes/authenticationRoutes");
@@ -14,6 +12,7 @@ const calendarRoutes = require("./routes/calendarRoutes");
 const searchRoutes = require("./routes/searchRoutes");
 const userRoutes = require("./routes/userRoutes");
 const meetingRoutes = require("./routes/meetingRoutes");
+const taskRoutes = require("./routes/taskRoutes");
 const passport = require("./auth/passport");
 
 
@@ -36,9 +35,7 @@ app.use("/calendar", calendarRoutes);
 app.use("/search", searchRoutes);
 app.use("/user", userRoutes);
 app.use("/meeting", meetingRoutes);
-
-sendReminders();
-updateMeetingStatus();
+app.use("/tasks", taskRoutes);
 
 app.use((err, req, res, next) => {
   if (

@@ -1,0 +1,66 @@
+name: Build and Deploy to Cloud Run
+
+# Trigger on pushes to main. Also allow manual runs from the Actions tab.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# These are NOT secrets — edit to match your GCP setup.
+env:
+  PROJECT_ID: syncro-498706
+  REGION: asia-south1
+  REPO: node-apps
+  SERVICE: syncro
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    # Required for Workload Identity Federation (see note at bottom).
+    # Harmless to leave when using a service-account key.
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Authenticate to GCP using a service-account key stored in a GitHub secret.
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+
+      - name: Build and push image
+        run: |
+          IMAGE="${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/${SERVICE}:${GITHUB_SHA}"
+          echo "IMAGE=$IMAGE" >> "$GITHUB_ENV"
+          docker build -t "$IMAGE" .
+          docker push "$IMAGE"
+
+      # Recreate env.yaml from a single GitHub secret (full YAML contents).
+      # Keeps all app secrets out of the repo. Do NOT set PORT here.
+      - name: Write env file
+        run: echo "${{ secrets.ENV_YAML }}" > env.yaml
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy "${SERVICE}" \
+            --image="${IMAGE}" \
+            --region="${REGION}" \
+            --service-account="synchro-run@${PROJECT_ID}.iam.gserviceaccount.com" \
+            --env-vars-file=env.yaml \
+            --allow-unauthenticated \
+            --port=8080 \
+            --min-instances=0
+
+      - name: Show service URL
+        run: gcloud run services describe "${SERVICE}" --region="${REGION}" --format="value(status.url)"
