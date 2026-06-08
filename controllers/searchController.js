@@ -98,7 +98,7 @@ exports.searchByTimeslot = async (req, res, next) => {
       let allFree = true;
 
       for (let id of uid) {
-        let allEvents = []; // ✅ reset for each user on each slot
+        let allEvents = [];
 
         const events = await calendarEvents.find({ uid: id });
 
@@ -111,16 +111,26 @@ exports.searchByTimeslot = async (req, res, next) => {
           .find({ uid: id })
           .populate({ path: "mid", populate: { path: "eid" } })
           .lean();
+        if (collabEvents.length !== 0) {
+          for (let e1 of collabEvents) allEvents.push(e1.eid);
+        }
+        if (meetings.length !== 0) {
+          for (let e2 of meetings) allEvents.push(e2.mid.eid);
+        }
 
-        for (let e1 of collabEvents) allEvents.push(e1.eid);
-        for (let e2 of meetings) allEvents.push(e2.mid.eid);
-
-        if (
-          isUserBusy(allEvents, slot.start, slot.end) ||
-          isUserBusy(events, slot.start, slot.end)
-        ) {
-          allFree = false;
-          break;
+        if (allEvents.length === 0) {
+          if (isUserBusy(events, slot.start, slot.end)) {
+            allFree = false;
+            break;
+          }
+        } else {
+          if (
+            isUserBusy(allEvents, slot.start, slot.end) ||
+            isUserBusy(events, slot.start, slot.end)
+          ) {
+            allFree = false;
+            break;
+          }
         }
       }
 
