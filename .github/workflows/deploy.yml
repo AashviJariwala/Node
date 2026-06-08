@@ -1,0 +1,98 @@
+name: Build and Deploy to Cloud Run
+
+# Trigger on pushes to main. Also allow manual runs from the Actions tab.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# These are NOT secrets — edit to match your GCP setup.
+env:
+  PROJECT_ID: syncro-498706
+  REGION: asia-south1
+  REPO: node-apps
+  SERVICE: syncro
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    # Required for Workload Identity Federation (see note at bottom).
+    # Harmless to leave when using a service-account key.
+    permissions:
+      contents: read
+      id-token: write
+
+    # App environment variables passed to Cloud Run.
+    # Inline = non-sensitive config; ${{ secrets.* }} = stored as GitHub repo secrets.
+    # Do NOT set PORT here — Cloud Run provides it.
+    env:
+      CLOUD_NAME: dz7228t0b
+      EMAIL_ID: aashvijariwala@gmail.com
+      GOOGLE_REDIRECT_URI: https://syncro-805779616636.asia-south1.run.app/login/auth/google/callback
+      PYTHON_OCR_URL: https://python-production-f595.up.railway.app
+      REACT_URL: https://synchro-ivory.vercel.app
+      API_KEY: ${{ secrets.API_KEY }}
+      API_SECRET: ${{ secrets.API_SECRET }}
+      BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
+      EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+      GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+      GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+      JWT_SECRET: ${{ secrets.JWT_SECRET }}
+      SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
+      MONGODB_URL: ${{ secrets.MONGODB_URL }}
+      TASKS_SECRET: ${{ secrets.TASKS_SECRET }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Authenticate to GCP using a service-account key stored in a GitHub secret.
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+
+      - name: Build and push image
+        run: |
+          IMAGE="${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/${SERVICE}:${GITHUB_SHA}"
+          echo "IMAGE=$IMAGE" >> "$GITHUB_ENV"
+          docker build -t "$IMAGE" .
+          docker push "$IMAGE"
+
+      - name: Deploy to Cloud Run
+        # Build a pipe-delimited env string (^|^) so values containing commas,
+        # '@', or '&' (e.g. MONGODB_URL) are passed intact.
+        run: |
+          ENV_VARS="^|^CLOUD_NAME=${CLOUD_NAME}"
+          ENV_VARS="${ENV_VARS}|EMAIL_ID=${EMAIL_ID}"
+          ENV_VARS="${ENV_VARS}|GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI}"
+          ENV_VARS="${ENV_VARS}|PYTHON_OCR_URL=${PYTHON_OCR_URL}"
+          ENV_VARS="${ENV_VARS}|REACT_URL=${REACT_URL}"
+          ENV_VARS="${ENV_VARS}|API_KEY=${API_KEY}"
+          ENV_VARS="${ENV_VARS}|API_SECRET=${API_SECRET}"
+          ENV_VARS="${ENV_VARS}|BREVO_API_KEY=${BREVO_API_KEY}"
+          ENV_VARS="${ENV_VARS}|EMAIL_PASSWORD=${EMAIL_PASSWORD}"
+          ENV_VARS="${ENV_VARS}|GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}"
+          ENV_VARS="${ENV_VARS}|GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}"
+          ENV_VARS="${ENV_VARS}|JWT_SECRET=${JWT_SECRET}"
+          ENV_VARS="${ENV_VARS}|SESSION_SECRET=${SESSION_SECRET}"
+          ENV_VARS="${ENV_VARS}|MONGODB_URL=${MONGODB_URL}"
+          ENV_VARS="${ENV_VARS}|TASKS_SECRET=${TASKS_SECRET}"
+          gcloud run deploy "${SERVICE}" \
+            --image="${IMAGE}" \
+            --region="${REGION}" \
+            --service-account="synchro-run@${PROJECT_ID}.iam.gserviceaccount.com" \
+            --set-env-vars="${ENV_VARS}" \
+            --allow-unauthenticated \
+            --port=8080 \
+            --min-instances=0
+
+      - name: Show service URL
+        run: gcloud run services describe "${SERVICE}" --region="${REGION}" --format="value(status.url)"
