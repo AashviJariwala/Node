@@ -209,6 +209,6 @@ exports.uploadOnCloud = async (file) => {
   };
 };
 
-const toIST = (dateStr) => {
+exports.toIST = (dateStr) => {
   return new Date(dateStr + "T00:00:00+05:30");
 };
