@@ -1,4 +1,4 @@
-const { getGoogleClient, formatToISTRange } = require("../utils/helper");
+const { getGoogleClient, formatToISTRange ,toIST} = require("../utils/helper");
 const calendarEvents = require("../models/calendarEvents");
 const collaborativeEvents = require("../models/collaborativeEvents");
 const mongoose = require("mongoose");
@@ -139,9 +139,13 @@ exports.syncFromGoogle = async (req, res, next) => {
       dateTime: formatToISTRange(raw.start, raw.end),
     }));
 
-    const collabRec = await collaborativeEvents.find({ uid: userId }).populate("eid");
+    const collabRec = await collaborativeEvents.find({ uid: userId }).populate("eid").lean();
     const collabEvents = collabRec?.map((e) => e.eid) ?? [];
-    const allEvents = [...eventData, ...collabEvents];
+    const collabEventData = collabEvents.map((raw) => ({
+      ...raw,
+      dateTime: formatToISTRange(raw.start, raw.end),
+    }));
+    const allEvents = [...eventData, ...collabEventData];
 
     return res.status(200).send({ success: true, data: allEvents });
   } catch (err) {
